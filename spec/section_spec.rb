@@ -165,6 +165,17 @@ describe FixedWidth::Section do
       parsed[:name][:last].should == 'Woód'
       parsed[:address][:state].should == 'SC'
     end
+    
+    it "should not die if a field is not in range" do
+      @section.column(:a, 5)
+      @section.column(:b, 5)
+      @section.column(:c, 5)
+      line = '   45'
+      parsed = @section.parse(line)
+      parsed[:a].should == '45'
+      parsed[:b].should == ''
+      parsed[:c].should == ''
+    end
   end
 
   it "should try to match a line using the trap" do

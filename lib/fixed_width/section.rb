@@ -60,7 +60,8 @@ class FixedWidth
       @columns.each do |c|
         unless c.name == :spacer
           assignee         = c.group ? row[c.group] : row
-          assignee[c.name] = c.parse(line.mb_chars[cursor..cursor+c.length-1])
+          capture = line.mb_chars[cursor..cursor+c.length-1] || ''
+          assignee[c.name] = c.parse(capture)
         end
         cursor += c.length
       end
