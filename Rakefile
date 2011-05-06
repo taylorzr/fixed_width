@@ -24,6 +24,7 @@ END
     gemspec.email = "timon.karnezos@gmail.com"
     gemspec.homepage = "http://github.com/timonk/fixed_width"
     gemspec.authors = ["Timon Karnezos"]
+    gemspec.add_dependency 'activesupport'
   end
 rescue LoadError
   warn "Jeweler not available. Install it with:"

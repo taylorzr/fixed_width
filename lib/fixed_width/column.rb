@@ -5,7 +5,7 @@ class FixedWidth
     DEFAULT_TRUNCATE  = false
     DEFAULT_FORMATTER = :to_s
 
-    attr_reader :name, :length, :alignment, :padding, :truncate, :group, :unpacker
+    attr_reader :name, :length, :alignment, :padding, :truncate, :group
 
     def initialize(name, length, options={})
       assert_valid_options(options)
@@ -17,13 +17,7 @@ class FixedWidth
 
       @group     = options[:group]
 
-      @unpacker  = "A#{@length}"
-
       @parser    = options[:parser]
-      @parser    ||= case @alignment
-                 when :right then :lstrip
-                 when :left  then :rstrip
-                 end
       @parser    = @parser.to_proc if @parser.is_a?(Symbol)
 
       @formatter = options[:formatter]
@@ -36,8 +30,15 @@ class FixedWidth
     def parse(value)
       if @nil_blank && blank?(value)
         return nil
-      else
+      elsif @parser
         @parser.call(value)
+      else
+        case @alignment
+        when :right
+          value.lstrip
+        when :left
+          value.rstrip
+        end
       end
     rescue
       raise ParserError.new("The value '#{value}' could not be parsed: #{$!}")

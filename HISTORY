@@ -1,3 +1,8 @@
+v????
+=========================
+    * support for multibyte chars
+    * tested in ruby 1.8.7 and ruby 1.9.2
+
 v0.1.1 (2010-05-29)
 =========================
     * column grouping (parsing and writing)

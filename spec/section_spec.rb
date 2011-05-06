@@ -1,3 +1,4 @@
+# encoding: utf-8
 require File.join(File.dirname(__FILE__), 'spec_helper')
 
 describe FixedWidth::Section do
@@ -131,7 +132,7 @@ describe FixedWidth::Section do
 
   describe "when parsing a file" do
     before(:each) do
-      @line = '   45      Ryan      WoodSC '
+      @line = '   45      Ryan      WoódSC '
       @section = FixedWidth::Section.new(:body)
       @column_content = { :id => 5, :first => 10, :last => 10, :state => 2 }
     end
@@ -161,7 +162,7 @@ describe FixedWidth::Section do
       parsed.should have(3).keys
       parsed[:id].should == '45'
       parsed[:name][:first].should == 'Ryan'
-      parsed[:name][:last].should == 'Wood'
+      parsed[:name][:last].should == 'Woód'
       parsed[:address][:state].should == 'SC'
     end
   end

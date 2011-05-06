@@ -54,13 +54,15 @@ class FixedWidth
     end
 
     def parse(line)
-      line_data = line.unpack(unpacker)
       row       = group_names.inject({}) {|h,g| h[g] = {}; h }
 
-      @columns.each_with_index do |c, i|
-        next if c.name == :spacer
-        assignee         = c.group ? row[c.group] : row
-        assignee[c.name] = c.parse(line_data[i])
+      cursor = 0
+      @columns.each do |c|
+        unless c.name == :spacer
+          assignee         = c.group ? row[c.group] : row
+          assignee[c.name] = c.parse(line.mb_chars[cursor..cursor+c.length-1])
+        end
+        cursor += c.length
       end
 
       row
@@ -82,10 +84,6 @@ class FixedWidth
 
     def group_names
       @columns.map(&:group).compact.uniq
-    end
-
-    def unpacker
-      @unpacker ||= @columns.map(&:unpacker).join
     end
   end
 end

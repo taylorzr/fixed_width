@@ -27,10 +27,6 @@ describe FixedWidth::Column do
     it "should have a default truncation" do
       @column.truncate.should be_false
     end
-
-    it "should build the proper unpack value for a string" do
-      @column.send(:unpacker).should == 'A5'
-    end
   end
 
   describe "when specifying an alignment" do
