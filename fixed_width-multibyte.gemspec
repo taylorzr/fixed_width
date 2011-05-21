@@ -31,6 +31,7 @@ Renamed the gem to be a little clearer as to its purpose. Hate that 'nokogiri' n
     "TODO",
     "VERSION",
     "examples/readme_example.rb",
+    "fixed_width-multibyte.gemspec",
     "fixed_width.gemspec",
     "lib/fixed_width.rb",
     "lib/fixed_width/column.rb",
