@@ -12,10 +12,12 @@ end
 begin
   require 'jeweler'
   Jeweler::Tasks.new do |gemspec|
-    gemspec.name = "fixed_width"
+    gemspec.name = "fixed_width-multibyte"
     gemspec.summary = "A gem that provides a DSL for parsing and writing files of fixed-width records."
     gemspec.description = <<END
 A gem that provides a DSL for parsing and writing files of fixed-width records.
+
+Multibyte support added while Timon is on vacation.
 
 Shamelessly forked from ryanwood/slither [http://github.com/ryanwood/slither].
 
