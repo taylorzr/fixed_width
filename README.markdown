@@ -1,3 +1,12 @@
+SPECIAL NOTE
+============
+
+Gem name: fixed_width-multibyte (as opposed to fixed_width)
+
+Forked from https://github.com/timonk/fixed_width to provide multibyte support. Uses ActiveSupport::Multibyte::Chars instead of String#unpack. Tested in Ruby 1.8.7 and 1.9.2.
+
+Per https://github.com/timonk/fixed_width/pull/1, this fork will not be reintegrated into the fixed_width because it adds the ActiveSupport dependency.
+
 DESCRIPTION:
 ============
 
