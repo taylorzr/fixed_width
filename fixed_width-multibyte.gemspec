@@ -4,21 +4,14 @@
 # -*- encoding: utf-8 -*-
 
 Gem::Specification.new do |s|
-  s.name = %q{fixed_width-multibyte}
-  s.version = "0.2.2"
+  s.name = "fixed_width-multibyte"
+  s.version = "0.2.3"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Timon Karnezos"]
-  s.date = %q{2011-05-21}
-  s.description = %q{A gem that provides a DSL for parsing and writing files of fixed-width records.
-
-Multibyte support added while Timon is on vacation.
-
-Shamelessly forked from ryanwood/slither [http://github.com/ryanwood/slither].
-
-Renamed the gem to be a little clearer as to its purpose. Hate that 'nokogiri' nonsense.
-}
-  s.email = %q{timon.karnezos@gmail.com}
+  s.date = "2012-01-27"
+  s.description = "A gem that provides a DSL for parsing and writing files of fixed-width records.\n\nMultibyte support added while Timon is on vacation.\n\nShamelessly forked from ryanwood/slither [http://github.com/ryanwood/slither].\n\nRenamed the gem to be a little clearer as to its purpose. Hate that 'nokogiri' nonsense.\n"
+  s.email = "timon.karnezos@gmail.com"
   s.extra_rdoc_files = [
     "README.markdown",
     "TODO"
@@ -32,7 +25,7 @@ Renamed the gem to be a little clearer as to its purpose. Hate that 'nokogiri' n
     "VERSION",
     "examples/readme_example.rb",
     "fixed_width-multibyte.gemspec",
-    "fixed_width.gemspec",
+    "lib/fixed_width-multibyte.rb",
     "lib/fixed_width.rb",
     "lib/fixed_width/column.rb",
     "lib/fixed_width/core_ext/symbol.rb",
@@ -49,10 +42,10 @@ Renamed the gem to be a little clearer as to its purpose. Hate that 'nokogiri' n
     "spec/section_spec.rb",
     "spec/spec_helper.rb"
   ]
-  s.homepage = %q{http://github.com/timonk/fixed_width}
+  s.homepage = "http://github.com/timonk/fixed_width"
   s.require_paths = ["lib"]
-  s.rubygems_version = %q{1.6.2}
-  s.summary = %q{A gem that provides a DSL for parsing and writing files of fixed-width records.}
+  s.rubygems_version = "1.8.10"
+  s.summary = "A gem that provides a DSL for parsing and writing files of fixed-width records."
 
   if s.respond_to? :specification_version then
     s.specification_version = 3
