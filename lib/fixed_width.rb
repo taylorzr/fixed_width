@@ -1,4 +1,3 @@
-$: << File.dirname(__FILE__)
 require 'ostruct'
 
 require 'active_support'
