@@ -27,7 +27,7 @@ class FixedWidth
       @nil_blank = options[:nil_blank]
     end
 
-    def parse(value)
+    def parse(value, section)
       if @nil_blank && blank?(value)
         return nil
       elsif @parser
@@ -41,7 +41,7 @@ class FixedWidth
         end
       end
     rescue
-      raise ParserError.new("The value '#{value}' could not be parsed: #{$!}")
+      raise ParserError.new("#{section.name}::#{name}: The value '#{value}' could not be parsed: #{$!}")
     end
 
     def format(value)

@@ -61,7 +61,7 @@ class FixedWidth
         unless c.name == :spacer
           assignee         = c.group ? row[c.group] : row
           capture = line.mb_chars[cursor..cursor+c.length-1] || ''
-          assignee[c.name] = c.parse(capture)
+          assignee[c.name] = c.parse(capture, self)
         end
         cursor += c.length
       end
