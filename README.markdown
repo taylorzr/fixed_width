@@ -1,7 +1,7 @@
 SPECIAL NOTE
 ============
 
-Gem name: fixed_width-multibyte (as opposed to fixed_width)
+An attempt to integrate the various forks of `ryanwood/slither`.
 
 Forked from https://github.com/timonk/fixed_width to provide multibyte support. Uses ActiveSupport::Multibyte::Chars instead of String#unpack. Tested in Ruby 1.8.7 and 1.9.2.
 
