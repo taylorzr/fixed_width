@@ -1,31 +1,37 @@
 module FixedWidth
   class Definition
-    attr_reader :sections, :templates, :options
+    attr_reader :options
 
     def initialize(options={})
-      @sections  = []
-      @templates = {}
-      @options   = { :align => :right }.merge(options)
+      @parts = { section: {}, template: {} }
+      @options = { :align => :right }.merge(options)
     end
 
-    def section(name, options={}, &block)
-      raise DuplicateSectionNameError.new("Duplicate section name: '#{name}'") if @sections.detect{|s| s.name == name }
-
-      section = FixedWidth::Section.new(name, @options.merge(options))
-      section.definition = self
-      yield(section)
-      @sections << section
-      section
-    end
-
-    def template(name, options={}, &block)
-      section = FixedWidth::Section.new(name, @options.merge(options))
-      yield(section)
-      @templates[name] = section
+    [:section, :template].each do |type|
+      define_method(type) do |name, options={}, &block|
+        add_part(type, name, options, &block)
+      end
+      define_method("#{type}s".to_sym) do |*keys|
+        return @parts[type].values if keys.blank?
+        keys.map{ |key| @parts[type][key] }
+      end
     end
 
     def method_missing(method, *args, &block)
       section(method, *args, &block)
     end
+
+    private
+
+    def add_part(type, name, options, &block)
+      raise FixedWidth::DuplicateSectionNameError.new %{
+        Duplicate #{type} with name '#{name}'
+      }.squish if @parts[type][name]
+      part = FixedWidth::Section.new(name, @options.merge(options))
+      part.definition = self unless type == :template
+      yield(part)
+      @parts[type][name] = part
+    end
+
   end
 end

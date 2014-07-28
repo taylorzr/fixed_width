@@ -39,7 +39,7 @@ module FixedWidth
     end
 
     def template(name)
-      template = @definition.templates[name]
+      template = @definition.templates(name).first
       raise ArgumentError.new("Template '#{name}' not found as a known template.") unless template
       @columns += template.columns
       # Section options should trump template options

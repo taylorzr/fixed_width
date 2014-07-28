@@ -2,6 +2,7 @@ require 'ostruct'
 
 require 'active_support/core_ext/object/try'
 require 'active_support/core_ext/object/blank'
+require 'active_support/core_ext/string/filters'
 require 'active_support/multibyte'
 
 require 'fixed_width/version'
