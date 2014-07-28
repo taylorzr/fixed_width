@@ -19,7 +19,6 @@ class FixedWidth
   class RequiredSectionNotFoundError < StandardError; end
   class RequiredSectionEmptyError < StandardError; end
   class FormattedStringExceedsLengthError < StandardError; end
-  class ColumnMismatchError < StandardError; end
   class UnusedLineError < StandardError; end
 
   #
