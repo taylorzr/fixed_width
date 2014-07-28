@@ -1,4 +1,4 @@
-class FixedWidth
+module FixedWidth
   class Definition
     attr_reader :sections, :templates, :options
 

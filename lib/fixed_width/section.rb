@@ -1,4 +1,4 @@
-class FixedWidth
+module FixedWidth
   class Section
     attr_accessor :definition, :optional, :singular
     attr_reader :name, :columns, :options

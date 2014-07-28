@@ -1,4 +1,4 @@
-class FixedWidth
+module FixedWidth
   class Column
     DEFAULT_PADDING   = ' '
     DEFAULT_ALIGNMENT = :right

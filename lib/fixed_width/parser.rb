@@ -1,5 +1,5 @@
 require 'fiber'
-class FixedWidth
+module FixedWidth
   class Parser
 
     def initialize(definition, io)

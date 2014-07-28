@@ -1,4 +1,4 @@
-class FixedWidth
+module FixedWidth
   class Generator
 
     def initialize(definition)

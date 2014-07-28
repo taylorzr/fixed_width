@@ -1,3 +1,3 @@
-class FixedWidth
+module FixedWidth
   VERSION = ""
 end
