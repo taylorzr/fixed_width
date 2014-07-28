@@ -70,11 +70,20 @@ class FixedWidth
     end
 
     def match(raw_line)
-      raw_line.nil? ? false : @trap.call(raw_line)
+      raw_line.nil? ? false :
+        raw_line.length == self.length && @trap.call(raw_line)
     end
 
     def method_missing(method, *args)
       column(method, *args)
+    end
+
+    def length
+      @length = nil if @columns_hash != @columns.hash
+      @length ||= begin
+        @columns_hash = @columns.hash
+        @columns.map(&:length).reduce(0,:+)
+      end
     end
 
     private
@@ -86,5 +95,6 @@ class FixedWidth
     def group_names
       @columns.map(&:group).compact.uniq
     end
+
   end
 end

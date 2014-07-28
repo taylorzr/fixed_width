@@ -95,7 +95,7 @@ class FixedWidth
     end
 
     def next_line!
-      line_fiber.alive? ? line_fiber.resume : nil
+      line_fiber.alive? ? line_fiber.resume.try(:chomp) : nil
     end
 
   end
