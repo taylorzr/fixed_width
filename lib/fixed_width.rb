@@ -1,16 +1,3 @@
-#
-# =DESCRIPTION:
-#
-# A simple, clean DSL for describing, writing, and parsing fixed-width text files.
-#
-# =FEATURES:
-#
-# * Easy DSL syntax
-# * Can parse and format fixed width files
-# * Templated sections for reuse
-#
-# For examples, see examples/*.rb or the README.
-#
 require 'fixed_width/requirements'
 module FixedWidth
   class ParserError < RuntimeError; end
