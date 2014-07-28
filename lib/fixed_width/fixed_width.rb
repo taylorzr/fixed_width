@@ -1,10 +1,10 @@
 #
 # =DESCRIPTION:
-# 
+#
 # A simple, clean DSL for describing, writing, and parsing fixed-width text files.
-# 
+#
 # =FEATURES:
-# 
+#
 # * Easy DSL syntax
 # * Can parse and format fixed width files
 # * Templated sections for reuse
@@ -20,6 +20,7 @@ class FixedWidth
   class RequiredSectionEmptyError < StandardError; end
   class FormattedStringExceedsLengthError < StandardError; end
   class ColumnMismatchError < StandardError; end
+  class UnusedLineError < StandardError; end
 
   #
   # [name]   a symbol to reference this file definition later
@@ -32,53 +33,63 @@ class FixedWidth
     definition = Definition.new(options)
     yield(definition)
     definitions[name] = definition
-    definition
   end
 
   #
-  # [data]            nested hash describing the contents of the sections
-  # [definition_name] symbol +name+ used in +define+
+  # [data]      nested hash describing the contents of the sections
+  # [def_name]  symbol +name+ used in +define+
   #
   # returns: string of the transformed +data+ (into fixed-width records).
   #
-  def self.generate(definition_name, data)
-    definition = definition(definition_name)
-    raise ArgumentError.new("Definition name '#{name}' was not found.") unless definition
+  def self.generate(def_name, data)
+    definition = definitions[def_name]
+    raise ArgumentError.new("Definition name '#{def_name}' was not found.") unless definition
     generator = Generator.new(definition)
     generator.generate(data)
   end
 
   #
-  # [file]            IO object to write the +generate+d data
-  # [definition_name] symbol +name+ used in +define+
-  # [data]            nested hash describing the contents of the sections
+  # [io]        IO object to write the +generate+d data
+  # [def_name]  symbol +name+ used in +define+
+  # [data]      nested hash describing the contents of the sections
   #
-  # writes transformed data to +file+ object as fixed-width records.
+  # writes transformed data to +io+ object as fixed-width records.
   #
-  def self.write(file, definition_name, data)
-    file.write(generate(definition_name, data))
+  def self.write(io, def_name, data)
+    io.write(generate(def_name, data))
   end
 
   #
-  # [file]            IO object from which to read the fixed-width text records
-  # [definition_name] symbol +name+ used in +define+
+  # [io]          IO object from which to read the fixed-width text records
+  # [def_name]    symbol +name+ used in +define+
+  # [parse_opts]  Options hash to pass to Parser#parse
   #
   # returns: parsed text records in a nested hash.
   #
-  def self.parse(file, definition_name)
-    definition = definition(definition_name)
-    raise ArgumentError.new("Definition name '#{definition_name}' was not found.") unless definition
-    parser = Parser.new(definition, file)
-    parser.parse
+  def self.parse(io, def_name, parse_opts = {})
+    definition = definitions[def_name]
+    raise ArgumentError.new("Definition name '#{def_name}' was not found.") unless definition
+    parser = Parser.new(definition, io)
+    parser.parse(parse_opts)
+  end
+
+  #
+  # [filename]    Filename from which to read the fixed-width text records
+  # [def_name]    symbol +name+ used in +define+
+  # [parse_opts]  Options hash to pass to Parser#parse
+  #
+  # returns: parsed text records in a nested hash.
+  #
+  def self.parseFile(filename, def_name, parse_opts = {})
+    File.open(filename, 'r') do |file|
+      parse(file, def_name, parse_opts)
+    end
   end
 
   private
 
   def self.definitions
-    @@definitions ||= {}
+    @definitions ||= {}
   end
 
-  def self.definition(name)
-    definitions[name]
-  end
 end
