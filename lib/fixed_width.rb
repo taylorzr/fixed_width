@@ -11,8 +11,8 @@ module FixedWidth
 
   #
   # [name]   a symbol to reference this file definition later
-  # [option] a hash of default options for all sub-elements
-  # and a block that defines the sections of the file.
+  # [option] a hash of default options for all sub-elements and
+  #          a block that defines the sections of the file
   #
   # returns: +Definition+ instance for this file description.
   #
