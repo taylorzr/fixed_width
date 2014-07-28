@@ -4,7 +4,6 @@ require 'active_support/core_ext/object/try'
 require 'active_support/core_ext/object/blank'
 require 'active_support/multibyte'
 
-require 'fixed_width/core_ext/symbol'
 require 'fixed_width/version'
 require 'fixed_width/definition'
 require 'fixed_width/section'
