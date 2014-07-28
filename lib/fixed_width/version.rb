@@ -1,0 +1,3 @@
+class FixedWidth
+  VERSION = ""
+end
