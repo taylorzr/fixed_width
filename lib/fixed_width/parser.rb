@@ -9,13 +9,13 @@ module FixedWidth
 
     def parse(opts = {})
       reset_io!
-      how = @definition.options[:parse]
-      case how
+      opts = @definition.options.merge(opts)
+      case opts[:parse]
       when :by_bytes then parse_by_bytes(opts)
       when :any_order then parse_any_order(opts)
       when :in_order then parse_in_order(opts)
       else raise FixedWidth::ParseError.new %{
-        Unknown parse method `#{how.inspect}`
+        Unknown parse method `#{opts[:parse].inspect}`
       }.squish
       end
     end
