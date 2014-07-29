@@ -45,7 +45,8 @@ module FixedWidth
     end
 
     def trap(&block)
-      @trap = block
+      @trap = block if block_given?
+      @trap
     end
 
     def template(name)
@@ -81,7 +82,8 @@ module FixedWidth
 
     def match(raw_line)
       raw_line.nil? ? false :
-        raw_line.length == self.length && @trap.call(raw_line)
+        raw_line.length == self.length &&
+          (!trap || trap.call(raw_line))
     end
 
     def method_missing(method, *args)
