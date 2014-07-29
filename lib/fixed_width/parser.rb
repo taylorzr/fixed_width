@@ -26,12 +26,13 @@ module FixedWidth
       opts = {
         verify_lines: true,
         save_unparsable: false,
-        verify_sections: true
+        verify_sections: true,
+        skip_blank: true
       }.merge(opts)
       output = {}
       line_number = 0
       failed = []
-      while(line = next_line!) do
+      while(line = next_line!(opts[:skip_blank])) do
         section = @definition.sections.detect{ |s|
           s.match(line) && (!s.singular || !output[s.name])
         }
@@ -63,13 +64,16 @@ module FixedWidth
     end
 
     def parse_in_order(opts = {})
-      opts = { verify_lines: false }.merge(opts)
+      opts = {
+        verify_lines: false,
+        skip_blank: true
+      }.merge(opts)
       output = {}
       sections = make_fiber(@definition.sections.each)
       left = loop do
         section = sections.resume unless section
         break line unless section
-        line = next_line! unless line
+        line = next_line!(opts[:skip_blank]) unless line
         if section.match(line)
           add_to_section(output, section, line) { |singular|
             section = nil if singular
@@ -83,9 +87,12 @@ module FixedWidth
           section = nil
         end
       end
-      raise FixedWidth::UnusedLineError.new %{
-        Not all lines were parsed! Stopped at: #{left}
-      }.squish if opts[:verify_lines] && (left ||= next_line!)
+      if opts[:verify_lines]
+        left ||= next_line!(opts[:skip_blank])
+        raise FixedWidth::UnusedLineError.new %{
+          Not all lines were parsed! Stopped at: #{left}
+        }.squish if left
+      end
       output
     end
 
@@ -123,8 +130,11 @@ module FixedWidth
       @line_fiber = nil
     end
 
-    def next_line!
-      line_fiber.alive? ? line_fiber.resume.try(:chomp) : nil
+    def next_line!(skip_blank = false)
+      return nil unless line_fiber.alive?
+      line = line_fiber.resume.try(:chomp)
+      return next_line!(skip_blank) if skip_blank && line.blank?
+      line
     end
 
     def all_same_length?
