@@ -61,7 +61,7 @@ describe FixedWidth::Column do
       @column.parse("   0  \n").should == "0  \n"
       @column.parse('').should == nil
     end
-    
+
     it "should default to returning formatted strings if nil_blank is not set" do
       @column = FixedWidth::Column.new(@name, @length, :padding => '0', :nil_blank => false)
       @column.parse('    name ').should == 'name '
@@ -69,7 +69,7 @@ describe FixedWidth::Column do
       @column.parse("   0  \n").should == "0  \n"
       @column.parse('').should == ""
     end
-    
+
     it "should default to a right-aligned string" do
       @column.parse('    name ').should == 'name '
       @column.parse("   \t   234").should == '234'
@@ -150,7 +150,7 @@ describe FixedWidth::Column do
       it "should raise an error if truncate is false" do
         @value = "XX" * @length
         lambda { @column.format(@value) }.should raise_error(
-          FixedWidth::FormattedStringExceedsLengthError,
+          FixedWidth::FormatError,
           "The formatted value '#{@value}' in column '#{@name}' exceeds the allowed length of #{@length} chararacters."
         )
       end

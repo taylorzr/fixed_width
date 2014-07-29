@@ -121,7 +121,7 @@ Columns can have any name, except for `:spacer` which is reserved. Also, duplica
 
 * `:padding` can be set to a single character that will be used to pad formatted values, when writing fixed-width files.
 
-* `:truncate` can be set to true to truncate any value that exceeds the `length` property of a column. If unset or set to `false`, a `FixedWidth::FormattedStringExceedsLengthError` exception will be thrown.
+* `:truncate` can be set to true to truncate any value that exceeds the `length` property of a column. If unset or set to `false`, a `FixedWidth::FormatError` exception will be thrown.
 
 ##Writing out fixed-width records
 

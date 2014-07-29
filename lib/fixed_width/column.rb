@@ -41,11 +41,8 @@ module FixedWidth
     end
 
     def format(value)
-      pad(
-        validate_size(
-          opt(:formatter).call(value)
-        )
-      )
+      formatted = opt(:formatter).call(value)
+      validate_size(pad(formatted))
     end
 
     def opt(key)
@@ -60,6 +57,8 @@ module FixedWidth
         value.ljust(length, padding)
       when :right
         value.rjust(length, padding)
+      else
+        value
       end
     end
 
@@ -75,15 +74,20 @@ module FixedWidth
     end
 
     def validate_size(result)
-      return result if result.length <= length
-      raise FixedWidth::FormattedStringExceedsLengthError.new %{
-        The formatted value '#{result}' in column '#{name}'
-        exceeds the allowed length of #{length} chararacters.
-      }.squish unless truncate
-      case alignment
-      when :right then result[-length,length]
-      when :left  then result[0,length]
+      if truncate && result.length > length
+        result = case alignment
+        when :right then result[-length,length]
+        when :left  then result[0,length]
+        else result
+        end
       end
+      raise FixedWidth::FormatError.new %{
+        The formatted value '#{result}' in column '#{name}'
+        with padding '#{alignment.inspect}' is too
+        #{result.length > length ? 'long' : 'short'}:
+        got #{result.length} chararacters, expected #{length}.
+      }.squish if result.length != length
+      result
     end
 
   end
