@@ -6,6 +6,7 @@ module FixedWidth
   class RequiredSectionNotFoundError < BaseError; end
   class RequiredSectionEmptyError < BaseError; end
   class FormattedStringExceedsLengthError < BaseError; end
+  class SectionsNotSameLengthError < StandardError; end
   class UnusedLineError < BaseError; end
 
   #
