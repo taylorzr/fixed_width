@@ -1,13 +1,12 @@
 require 'fixed_width/requirements'
 module FixedWidth
-  class ParserError < RuntimeError; end
-  class DuplicateColumnNameError < StandardError; end
-  class DuplicateGroupNameError < StandardError; end
-  class DuplicateSectionNameError < StandardError; end
-  class RequiredSectionNotFoundError < StandardError; end
-  class RequiredSectionEmptyError < StandardError; end
-  class FormattedStringExceedsLengthError < StandardError; end
-  class UnusedLineError < StandardError; end
+  class BaseError < StandardError; end
+  class ParserError < BaseError; end
+  class DuplicateNameError < BaseError; end
+  class RequiredSectionNotFoundError < BaseError; end
+  class RequiredSectionEmptyError < BaseError; end
+  class FormattedStringExceedsLengthError < BaseError; end
+  class UnusedLineError < BaseError; end
 
   #
   # [name]   a symbol to reference this file definition later

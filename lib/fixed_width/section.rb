@@ -15,19 +15,19 @@ module FixedWidth
     def column(name, length, options={})
       # Check for duplicates
       if column_names_by_group(options[:group]).include?(name)
-        raise FixedWidth::DuplicateColumnNameError.new %{
+        raise FixedWidth::DuplicateNameError.new %{
           You have already defined a column named '#{name}'
           in the '#{options[:group].inspect}' group.
         }.squish
       end
       if column_names_by_group(nil).include?(options[:group])
-        raise FixedWidth::DuplicateGroupNameError.new %{
+        raise FixedWidth::DuplicateNameError.new %{
           You have already defined a column named '#{options[:group]}';
           you cannot have a group and column of the same name.
         }.squish
       end
       if group_names.include?(name)
-        raise FixedWidth::DuplicateGroupNameError.new %{
+        raise FixedWidth::DuplicateNameError.new %{
           You have already defined a group named '#{name}';
           you cannot have a group and column of the same name.
         }.squish

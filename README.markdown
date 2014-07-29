@@ -33,7 +33,7 @@ Hopefully this will cover 90% of use cases.
         t.column :record_type, 4
         t.column :company_id, 12
       end
-    
+
       # Create a section named :header
       d.header(:align => :left) do |header|
         # The trap tells FixedWidth which lines should fall into this section
@@ -41,7 +41,7 @@ Hopefully this will cover 90% of use cases.
         # Use the boundary template for the columns
         header.template :boundary
       end
-    
+
       d.body do |body|
         body.trap { |line| line[0,4] =~ /[^(HEAD|FOOT)]/ }
         body.column :id, 10, :parser => :to_i
@@ -52,7 +52,7 @@ Hopefully this will cover 90% of use cases.
         body.column :state, 2  , :group => :address
         body.column :country, 3, :group => :address
       end
-    
+
       d.footer do |footer|
         footer.trap { |line| line[0,4] == 'FOOT' }
         footer.template :boundary
@@ -80,7 +80,7 @@ This definition would output a parsed file something like this:
 ##Sections
 ###Declaring a section
 
-Sections can have any name, however duplicates are not allowed. (A `DuplicateSectionNameError` will be thrown.) We use the standard `method_missing` trick. So if you see any unusual behavior, that's probably the first spot to look.
+Sections can have any name, however duplicates are not allowed (a `DuplicateNameError` will be thrown). We use the standard `method_missing` trick. So if you see any unusual behavior, that's probably the first spot to look.
 
     FixedWidth.define :simple do |d|
         d.a_section_name do |s|
@@ -100,7 +100,7 @@ Sections can have any name, however duplicates are not allowed. (A `DuplicateSec
 ##Columns
 ###Declaring a column
 
-Columns can have any name, except for `:spacer` which is reserved. Also, duplicate column names within groupings are not allowed, and a column cannot share the same name as a group. (A `DuplicateColumnNameError` will be thrown for a duplicate column name within a grouping. A `DuplicateGroupNameError` will be thrown if you try to declare a column with the same name as an existing group or vice versa.) Again, basic `method_missing` trickery here, so be warned. You can declare columns either with the `method_missing` thing or by calling `Section#column`.
+Columns can have any name, except for `:spacer` which is reserved. Also, duplicate column names within groupings are not allowed, and a column cannot share the same name as a group (a `DuplicateNameError` will be thrown). Again, basic `method_missing` trickery here, so be warned. You can declare columns either with the `method_missing` thing or by calling `Section#column`.
 
     FixedWidth.define :simple do |d|
         d.a_section_name do |s|

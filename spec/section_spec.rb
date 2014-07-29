@@ -43,32 +43,32 @@ describe FixedWidth::Section do
 
     it "should prevent duplicate column names without any groupings" do
       @section.column :id, 10
-      lambda { @section.column(:id, 30) }.should raise_error(FixedWidth::DuplicateColumnNameError, /column named 'id'/)
+      lambda { @section.column(:id, 30) }.should raise_error(FixedWidth::DuplicateNameError, /column named 'id'/)
     end
 
     it "should prevent column names that already exist as groups" do
       @section.column :foo, 11, :group => :id
-      lambda { @section.column(:id, 30) }.should raise_error(FixedWidth::DuplicateGroupNameError, /group named 'id'/)
+      lambda { @section.column(:id, 30) }.should raise_error(FixedWidth::DuplicateNameError, /group named 'id'/)
     end
 
     it "should prevent group names that already exist as columns" do
       @section.column :foo, 11
-      lambda { @section.column(:id, 30, :group => :foo) }.should raise_error(FixedWidth::DuplicateGroupNameError, /column named 'foo'/)
+      lambda { @section.column(:id, 30, :group => :foo) }.should raise_error(FixedWidth::DuplicateNameError, /column named 'foo'/)
     end
 
     it "should prevent duplicate column names within groups" do
       @section.column :id, 10, :group => :foo
-      lambda { @section.column(:id, 30, :group => :foo) }.should raise_error(FixedWidth::DuplicateColumnNameError, /column named 'id' in the ':foo' group/)
+      lambda { @section.column(:id, 30, :group => :foo) }.should raise_error(FixedWidth::DuplicateNameError, /column named 'id' in the ':foo' group/)
     end
 
     it "should allow duplicate column names in different groups" do
       @section.column :id, 10, :group => :foo
-      lambda { @section.column(:id, 30, :group => :bar) }.should_not raise_error(FixedWidth::DuplicateColumnNameError)
+      lambda { @section.column(:id, 30, :group => :bar) }.should_not raise_error(FixedWidth::DuplicateNameError)
     end
 
     it "should allow duplicate column names that are reserved (i.e. spacer)" do
       @section.spacer 10
-      lambda { @section.spacer 10 }.should_not raise_error(FixedWidth::DuplicateColumnNameError)
+      lambda { @section.spacer 10 }.should_not raise_error(FixedWidth::DuplicateNameError)
     end
   end
 
@@ -150,7 +150,7 @@ describe FixedWidth::Section do
       parsed = @section.parse(@line)
       parsed.should have(4).keys
     end
-    
+
     it "should break columns into groups" do
       @section.column(:id, 5)
       @section.column(:first, 10, :group => :name)
@@ -165,7 +165,7 @@ describe FixedWidth::Section do
       parsed[:name][:last].should == 'Woód'
       parsed[:address][:state].should == 'SC'
     end
-    
+
     it "should not die if a field is not in range" do
       @section.column(:a, 5)
       @section.column(:b, 5)

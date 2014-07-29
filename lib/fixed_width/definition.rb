@@ -24,8 +24,8 @@ module FixedWidth
     private
 
     def add_part(type, name, options, &block)
-      raise FixedWidth::DuplicateSectionNameError.new %{
-        Duplicate #{type} with name '#{name}'
+      raise FixedWidth::DuplicateNameError.new %{
+        Definition has duplicate #{type} with name '#{name}'
       }.squish if @parts[type][name]
       part = FixedWidth::Section.new(name, @options.merge(options))
       part.definition = self unless type == :template

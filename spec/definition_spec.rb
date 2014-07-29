@@ -45,8 +45,8 @@ describe FixedWidth::Definition do
     end
 
     it "should not create duplicate section names" do
-      lambda { @d.section(:header) {} }.should_not raise_error(FixedWidth::DuplicateSectionNameError)
-      lambda { @d.section(:header) {} }.should raise_error(FixedWidth::DuplicateSectionNameError, "Duplicate section name: 'header'")
+      lambda { @d.section(:header) {} }.should_not raise_error(FixedWidth::DuplicateNameError)
+      lambda { @d.section(:header) {} }.should raise_error(FixedWidth::DuplicateNameError, "Duplicate section name: 'header'")
     end
   end
 
