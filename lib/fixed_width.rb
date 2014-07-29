@@ -1,7 +1,7 @@
 require 'fixed_width/requirements'
 module FixedWidth
   class BaseError < StandardError; end
-  class ParserError < BaseError; end
+  class ParseError < BaseError; end
   class DuplicateNameError < BaseError; end
   class RequiredSectionNotFoundError < BaseError; end
   class RequiredSectionEmptyError < BaseError; end

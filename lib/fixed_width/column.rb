@@ -41,7 +41,9 @@ module FixedWidth
         end
       end
     rescue
-      raise ParserError.new("#{section.name}::#{name}: The value '#{value}' could not be parsed: #{$!}")
+      raise FixedWidth::ParseError.new %{
+        #{section.name}::#{name}: The value '#{value}' could not be parsed: #{$!}
+      }.squish
     end
 
     def format(value)
