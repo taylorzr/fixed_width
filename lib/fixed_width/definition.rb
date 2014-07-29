@@ -4,7 +4,10 @@ module FixedWidth
 
     def initialize(options={})
       @parts = { section: {}, template: {} }
-      @options = { :align => :right }.merge(options)
+      @options = {
+        align: :right,
+        parse: :in_order
+      }.merge(options)
     end
 
     [:section, :template].each do |type|
