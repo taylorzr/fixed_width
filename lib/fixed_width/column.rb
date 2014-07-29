@@ -25,13 +25,13 @@ module FixedWidth
 
     def parse(value, section)
       return nil if opt(:nil_blank) && value.blank?
-      return opt(:parser).call(value) if opt(:parser)
-      case alignment
-      when :right
-        value.lstrip
-      when :left
-        value.rstrip
+      aligned = case alignment
+      when :right then value.lstrip
+      when :left then value.rstrip
+      else value
       end
+      return opt(:parser).call(aligned) if opt(:parser)
+      aligned
     rescue
       raise FixedWidth::ParseError.new %{
         #{section.name}::#{name}:
@@ -65,8 +65,8 @@ module FixedWidth
 
     def assert_valid_options(options)
       opts = DEFAULT_OPTIONS.merge(options)
-      unless [nil, :left, :right].include?(opts[:align])
-        raise ArgumentError.new("Option :align only accepts :right (default) or :left")
+      unless [nil, :left, :right, :none].include?(opts[:align])
+        raise ArgumentError.new("Option :align only accepts :right, :left, or :none")
       end
       [:parser, :formatter].each do |pkey|
         opts[pkey] = opts[pkey].to_proc if opts[pkey].respond_to?(:to_proc)
