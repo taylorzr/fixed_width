@@ -51,7 +51,7 @@ module FixedWidth
       end
       if opts[:verify_sections]
         missing = @definition.sections.select? { |sec|
-          !output[sec.name] && !sec.optional
+          output[sec.name].blank? && !sec.optional
         }.map(&:name)
         unless missing.empty?
           raise FixedWidth::RequiredSectionNotFoundError.new(
