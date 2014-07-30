@@ -22,27 +22,14 @@ module FixedWidth
             # Setup validation function
             validate = !conf.key?(:validate) ? nil :
               case (arg = conf[:validate])
-              when Array
-                err_func(
-                  ->(val) { arg.include?(val) },
-                  ->(val) { ":#{key} must be one of #{arg.inspect}," +
-                            "got '#{val.inspect}'"
-                          }
-                )
-              when Proc
-                err_func(arg, ->(val) {
-                  "'#{val.inspect}' is an invalid value for :#{key}"
-                })
-              when Class
-                err_func(
-                  ->(val) { arg === val },
-                  ->(val) { ":#{key} must be a #{arg}, got '#{val.inspect}'" }
-                )
-              else
-                err_func(
-                  ->(val) { arg == val },
-                  ->(val) { ":#{key} must equal #{arg}, got '#{val.inspect}'" }
-                )
+              when Array then err_func( ->(val) { arg.include?(val) },
+                ->(val) { ":#{key} must be one of #{arg.inspect}, got '#{val.inspect}'" } )
+              when Proc then err_func( arg,
+                ->(val) { "'#{val.inspect}' is an invalid value for :#{key}" } )
+              when Class then err_func( ->(val) { arg === val },
+                ->(val) { ":#{key} must be a #{arg}, got '#{val.inspect}'" } )
+              else err_func( ->(val) { arg == val },
+                ->(val) { ":#{key} must equal #{arg}, got '#{val.inspect}'" } )
               end
             # Put it together
             option_config[key][:prepare] = lambda { |value|
