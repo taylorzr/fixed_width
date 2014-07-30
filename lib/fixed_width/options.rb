@@ -98,7 +98,10 @@ module FixedWidth
 
     def opt(name)
       key = opt_defined(name)
-      options[key][:value]
+      [:value,:default].each { |x|
+        return options[key][x] if options[key].key?(x)
+      }
+      nil
     end
 
     def set_opt(name, value)
@@ -109,28 +112,38 @@ module FixedWidth
 
     protected
 
-    def each_opt(&blk)
-      options.each(&blk)
+    def each_opt
+      return enum_for(:each_opt) unless block_given?
+      options.each do |key, conf|
+        yield conf.merge(key: key)
+      end
     end
 
     def merge_options(other, mopts)
-      other.each_opt { |key, conf|
+      other.each_opt { |conf|
+        key = conf[:key]
         if opt_defined(key, false)
-          case mopts[:prefer]
-          when :self
-            set_opt(key, conf[key][:value]) unless options[key].key?(:value)
-          when :other
-            set_opt(key, conf[key][:value])
-          else mopt_error(:prefer, mopts[:prefer])
+          pref = mopts[:prefer]
+          mopt_error(:prefer, pref) unless [:self, :other].include?(pref)
+          if using_default?(options[key]) # self is default
+            if using_default?(conf) # other is default
+              set_opt(key, conf[:default]) if pref == :other
+            else # other is value
+              set_opt(key, conf[:value])
+            end
+          else # self is value
+            if !using_default?(conf) # other is value
+              set_opt(key, conf[:value]) if pref == :other
+            end
           end
         else
-          case mopts[:missing]
+          mi = mopts[:missing]
+          mopt_error(:missing, mi) unless [:import, :raise, :skip].include?(mi)
+          case mi
           when :import
-            options[key] = conf[key].dup
+            options[key] = conf.reject{ |k,v| v == :key }
           when :raise
             raise FixedWidth::ConfigError.new "Cannot merge option :#{key}"
-          when :skip
-          else mopt_error(:missing, mopts[:missing])
           end
         end
       }
@@ -149,6 +162,10 @@ module FixedWidth
     end
 
     private
+
+    def using_default?(hash)
+      hash.key?(:default) && !hash.key?(:value)
+    end
 
     def mopt_error(key, got)
       raise FixedWidth::ConfigError.new %{
@@ -180,7 +197,7 @@ module FixedWidth
             prepare: conf[:prepare],
             required: !!conf[:required]
           }
-          acc[var][:value] = conf[:default] if conf.key?(:default)
+          acc[var][:default] = conf[:default] if conf.key?(:default)
           acc
         }
       end
@@ -202,7 +219,7 @@ module FixedWidth
       missing = []
       options.each do |key, conf|
         if conf[:required]
-          missing << key unless conf.key(:value)
+          missing << key if !conf.key?(:value) && !conf.key?(:default)
         end
       end
       raise FixedWidth::ConfigError.new %{
