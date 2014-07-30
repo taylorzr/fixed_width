@@ -2,6 +2,8 @@ require 'fiber'
 module FixedWidth
   class Parser
 
+    ParseTypes = [:any_order, :in_order, :by_bytes].freeze
+
     def initialize(definition, io)
       @definition = definition
       @io         = io
@@ -9,14 +11,10 @@ module FixedWidth
 
     def parse(opts = {})
       reset_io!
-      opts = @definition.options.merge(opts)
-      case opts[:parse]
-      when :by_bytes then parse_by_bytes(opts)
-      when :any_order then parse_any_order(opts)
-      when :in_order then parse_in_order(opts)
-      else raise FixedWidth::ParseError.new %{
-        Unknown parse method `#{opts[:parse].inspect}`
-      }.squish
+      case pm = @definition.parse
+      when *ParseTypes then send("parse_#{pm}".to_sym, opts)
+      else raise FixedWidth::ParseError.new(
+        "Unknown parse method `#{pm.inspect}`")
       end
     end
 

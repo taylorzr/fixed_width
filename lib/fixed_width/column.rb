@@ -1,27 +1,30 @@
 module FixedWidth
   class Column
+    include Options
 
-    DEFAULT_OPTIONS = {
-      alignment: :right,
-      padding: ' ',
-      truncate: false,
-      formatter: :to_s,
-      nil_blank: false,
-      parser: nil,
-      group: nil
-    }.freeze
+    options(
+      name: { transform: :to_sym, validate: blank },
+      length: { transform: to_int },
+      parser: { transform: nil_or_proc },
+      formatter: { default: :to_s, transform: nil_or_proc },
+      padding: { default: ' ', validate: String },
+      truncate: { default: false, validate: [true, false] },
+      nil_blank: { default: false, validate: [true, false] },
+      align: { default: :right, validate: [nil, :left, :right, :none] }
+      group: {}
+    )
+    opt_settings(
+      required: [:name, :length],
+      reader: [:name, :length, :align, :padding, :truncate, :group]
+    )
 
-    [:name, :length, :alignment, :padding, :truncate, :group].each do |m|
-      define_method(m) { opt(m) }
-    end
-
-    def initialize(options={})
-      @options = assert_valid_options(options)
+    def initialize(opts)
+      initialize_options(opts)
     end
 
     def parse(value, section)
       return nil if opt(:nil_blank) && value.blank?
-      aligned = case alignment
+      aligned = case align
       when :right then value.lstrip
       when :left then value.rstrip
       else value
@@ -31,8 +34,7 @@ module FixedWidth
     rescue
       raise FixedWidth::ParseError.new %{
         #{section.name}::#{name}:
-        The value '#{value}' could not be parsed:
-        #{$!}
+        The value '#{value}' could not be parsed: #{$!}
       }.squish
     end
 
@@ -41,14 +43,10 @@ module FixedWidth
       validate_size(pad(formatted))
     end
 
-    def opt(key)
-      @options[key]
-    end
-
     private
 
     def pad(value)
-      case alignment
+      case align
       when :left
         value.ljust(length, padding)
       when :right
@@ -58,31 +56,9 @@ module FixedWidth
       end
     end
 
-    def assert_valid_options(options)
-      opts = DEFAULT_OPTIONS.merge(options)
-      unless [nil, :left, :right, :none].include?(opts[:align])
-        raise FixedWidth::ConfigError.new %{
-          Option :align only accepts :right, :left, or :none
-        }.squish
-      end
-      [:parser, :formatter].each do |pkey|
-        opts[pkey] = opts[pkey].to_proc if opts[pkey].respond_to?(:to_proc)
-      end
-      [:name,:length].each do |field|
-        raise FixedWidth::ConfigError.new %{
-          Option :#{field} cannot be blank!
-        }.squish if opts[field].blank?
-      end
-      raise FixedWidth::ConfigError.new %{
-        Name must be symbolizable! Got: `#{opts[:name].inspect}`
-      }.squish unless opts[:name].respond_to?(:to_sym)
-      opts[:name] = opts[:name].to_sym
-      opts
-    end
-
     def validate_size(result)
       if truncate && result.length > length
-        result = case alignment
+        result = case align
         when :right then result[-length,length]
         when :left  then result[0,length]
         else result
@@ -90,7 +66,7 @@ module FixedWidth
       end
       raise FixedWidth::FormatError.new %{
         The formatted value '#{result}' in column '#{name}'
-        with padding '#{alignment.inspect}' is too
+        with padding '#{align.inspect}' is too
         #{result.length > length ? 'long' : 'short'}:
         got #{result.length} chararacters, expected #{length}.
       }.squish if result.length != length

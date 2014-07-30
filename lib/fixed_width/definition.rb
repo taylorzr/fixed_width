@@ -1,22 +1,23 @@
 module FixedWidth
   class Definition
-    attr_reader :options
+    include Options
 
-    def initialize(options={})
-      @parts = { section: {}, template: {} }
-      @options = {
-        align: :right,
-        parse: :in_order
-      }.merge(options)
+    options(
+      parse: { default: :in_order, validate: FixedWidth::Parser::ParseTypes }
+    )
+    opt_settings( :reader => :parse )
+
+    def initialize(opts={})
+      initialize_options(opts)
     end
 
     [:section, :template].each do |type|
-      define_method(type) do |name, options={}, &block|
-        add_part(type, name, options, &block)
+      define_method(type) do |name, opts={}, &block|
+        add_part(type, name, opts, &block)
       end
       define_method("#{type}s".to_sym) do |*keys|
-        return @parts[type].values if keys.blank?
-        keys.map{ |key| @parts[type][key] }
+        return parts[type].values if keys.blank?
+        keys.map{ |key| parts[type][key] }
       end
     end
 
@@ -26,14 +27,18 @@ module FixedWidth
 
     private
 
-    def add_part(type, name, options, &block)
+    def add_part(type, name, opts, &block)
       raise FixedWidth::DuplicateNameError.new %{
         Definition has duplicate #{type} with name '#{name}'
-      }.squish if @parts[type][name]
-      part = FixedWidth::Section.new(name, @options.merge(options))
-      part.definition = self
+      }.squish if parts[type][name]
+      opts = opts.merge(name: name, definition: self)
+      part = FixedWidth::Section.new(name, opts)
       yield(part)
-      @parts[type][name] = part
+      parts[type][name] = part
+    end
+
+    def parts
+      @parts ||= { section: {}, template: {} }
     end
 
   end

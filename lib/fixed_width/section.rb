@@ -1,27 +1,35 @@
 module FixedWidth
   class Section
-    attr_accessor :definition, :optional, :singular
-    attr_reader :name, :options
+    include Options
+
+    options(
+      name: { transform: :to_sym, validate: blank },
+      optional: { default: false, validate: [true, false] },
+      singular: { default: false, validate: [true, false] },
+      definition: { validate: FixedWidth::Definition },
+      trap: { transform: nil_or_proc }
+    )
+    opt_settings(
+      required: [:name, :definition],
+      reader: [:name, :definition, :optional, :singular],
+      writer: [:optional, :singular]
+    )
 
     RESERVED_NAMES = [:spacer, :template, :section].freeze
 
-    def initialize(name, options={})
-      @name     = name
-      @options  = options
-      @trap     = options[:trap]
-      @optional = options[:optional] || false
-      @singular = options[:singular] || false
+    def initialize(opts)
+      initialize_options(opts)
     end
 
     def column(name, length, opts={})
       # Construct column
-      col = Column.new @options.merge(opts).merge(name: name, length: length)
+      col = Column.new opts.merge(name: name, length: length)
       # Check name
       raise FixedWidth::ConfigError.new %{
         Invalid Name: '#{col.name}' is a reserved keyword!
       }.squish if RESERVED_NAMES.include?(col.name)
       # Check for duplicates
-      gn = check_duplicates(opts[:group], col.name)
+      gn = check_duplicates(col.group, col.name)
       # Add the new column
       columns << col
       group(gn) << col.name
@@ -29,7 +37,7 @@ module FixedWidth
     end
 
     def spacer(length, pad=nil)
-      opts = @options.merge(name: :spacer, length: length)
+      opts = { name: :spacer, length: length }
       opts[:padding] = pad if pad
       col = Column.new(opts)
       columns << col
@@ -37,23 +45,22 @@ module FixedWidth
     end
 
     def trap(&block)
-      @trap = block if block_given?
-      @trap
+      set_opt(:trap, block) if block_given?
+      opt(:trap)
     end
 
     def template(name)
-      template = @definition.templates(name).first
+      template = definition.templates(name).first
       raise FixedWidth::ConfigError.new %{
         Template '#{name}' not found as a known template.
       }.squish unless template
       template.columns.each do |col|
         unless RESERVED_NAMES.include?(col.name)
-          check_duplicates(col.group, col.name)
-          group(col.group) << col.name
+          gn = check_duplicates(col.group, col.name)
+          group(gn) << col.name
         end
         columns << col
       end
-      # @options = template.options.merge(@options)
       template
     end
 
