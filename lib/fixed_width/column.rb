@@ -10,7 +10,7 @@ module FixedWidth
       padding: { default: ' ', validate: String },
       truncate: { default: false, validate: [true, false] },
       nil_blank: { default: false, validate: [true, false] },
-      align: { default: :right, validate: [nil, :left, :right, :none] }
+      align: { default: :right, validate: [nil, :left, :right, :none] },
       group: {}
     )
     opt_settings(

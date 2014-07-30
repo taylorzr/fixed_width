@@ -3,6 +3,7 @@ module FixedWidth
 
     def self.included(base)
       base.extend(ClassMethods)
+      base.extend(FixedWidth::Helpers)
     end
 
     module ClassMethods
@@ -51,7 +52,7 @@ module FixedWidth
         end
       end
 
-      def opt_settings(hash) {
+      def opt_settings(hash)
         hash.each do |key,val|
           case key
           when :required
@@ -76,7 +77,7 @@ module FixedWidth
               "Unknown opt_setting '#{key.inspect}'")
           end
         end
-      }
+      end
 
       private
 
@@ -141,24 +142,12 @@ module FixedWidth
           mopt_error(:missing, mi) unless [:import, :raise, :skip].include?(mi)
           case mi
           when :import
-            options[key] = conf.reject{ |k,v| v == :key }
+            options[key] = conf.reject{ |k,v| k == :key }
           when :raise
             raise FixedWidth::ConfigError.new "Cannot merge option :#{key}"
           end
         end
       }
-    end
-
-    def blank
-      ->(v){ !v.blank? }
-    end
-
-    def to_int
-      ->(v){ Integer(v) }
-    end
-
-    def nil_or_proc
-      ->(v){ v.try(:to_proc) }
     end
 
     private
