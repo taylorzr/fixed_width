@@ -46,9 +46,15 @@ module FixedWidth
       raise FixedWidth::ConfigError.new %{
         Template '#{name}' not found as a known template.
       }.squish unless template
-      @columns += template.columns
-      # Section options should trump template options
-      @options = template.options.merge(@options)
+      template.columns.each do |col|
+        unless RESERVED_NAMES.include?(col.name)
+          check_duplicates(col.group, col.name)
+          group(col.group) << col.name
+        end
+        columns << col
+      end
+      # @options = template.options.merge(@options)
+      template
     end
 
     def format(data)
@@ -93,6 +99,20 @@ module FixedWidth
       end
     end
 
+    protected
+
+    def columns
+      @columns ||= []
+    end
+
+    def groups
+      @groups ||= {}
+    end
+
+    def group(name = nil)
+      groups[name] ||= Set.new
+    end
+
     private
 
     def check_duplicates(gn, name)
@@ -110,18 +130,6 @@ module FixedWidth
         you cannot have a group and column of the same name.
       }.squish if groups.key?(name)
       gn
-    end
-
-    def group(name = nil)
-      groups[name] ||= Set.new
-    end
-
-    def columns
-      @columns ||= []
-    end
-
-    def groups
-      @groups ||= {}
     end
 
   end
