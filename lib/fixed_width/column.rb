@@ -11,16 +11,12 @@ module FixedWidth
       group: nil
     }.freeze
 
-    attr_reader :name, :length
-
-    [:alignment, :padding, :truncate, :group].each do |m|
+    [:name, :length, :alignment, :padding, :truncate, :group].each do |m|
       define_method(m) { opt(m) }
     end
 
-    def initialize(name, length, options={})
+    def initialize(options={})
       @options = assert_valid_options(options)
-      @name    = name
-      @length  = length
     end
 
     def parse(value, section)
@@ -65,11 +61,22 @@ module FixedWidth
     def assert_valid_options(options)
       opts = DEFAULT_OPTIONS.merge(options)
       unless [nil, :left, :right, :none].include?(opts[:align])
-        raise ArgumentError.new("Option :align only accepts :right, :left, or :none")
+        raise FixedWidth::ConfigError.new %{
+          Option :align only accepts :right, :left, or :none
+        }.squish
       end
       [:parser, :formatter].each do |pkey|
         opts[pkey] = opts[pkey].to_proc if opts[pkey].respond_to?(:to_proc)
       end
+      [:name,:length].each do |field|
+        raise FixedWidth::ConfigError.new %{
+          Option :#{field} cannot be blank!
+        }.squish if opts[field].blank?
+      end
+      raise FixedWidth::ConfigError.new %{
+        Name must be symbolizable! Got: `#{opts[:name].inspect}`
+      }.squish unless opts[:name].respond_to?(:to_sym)
+      opts[:name] = opts[:name].to_sym
       opts
     end
 
