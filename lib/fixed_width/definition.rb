@@ -31,7 +31,7 @@ module FixedWidth
         Definition has duplicate #{type} with name '#{name}'
       }.squish if @parts[type][name]
       part = FixedWidth::Section.new(name, @options.merge(options))
-      part.definition = self unless type == :template
+      part.definition = self
       yield(part)
       @parts[type][name] = part
     end

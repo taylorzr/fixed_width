@@ -1,4 +1,5 @@
 require 'ostruct'
+require 'set'
 
 require 'active_support/core_ext/object/try'
 require 'active_support/core_ext/object/blank'
