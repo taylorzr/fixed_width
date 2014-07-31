@@ -7,6 +7,7 @@ require 'active_support/core_ext/string/filters'
 require 'active_support/multibyte'
 
 require 'fixed_width/version'
+require 'fixed_width/errors'
 require 'fixed_width/helpers'
 require 'fixed_width/options'
 require 'fixed_width/parser'
