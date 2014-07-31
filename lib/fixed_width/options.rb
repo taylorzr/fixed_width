@@ -39,8 +39,8 @@ module FixedWidth
               value
             }
             # Default Value
-            if default = conf[:default]
-              prep = option_config[key][:prepare].call(default)
+            if conf.key?(:default)
+              prep = option_config[key][:prepare].call(conf[:default])
               option_config[key][:default] = prep
             end
           rescue => e
@@ -107,9 +107,10 @@ module FixedWidth
 
     def set_opt(name, value, undefined = nil)
       want_bool = undefined.is_a?(Hash)
-      if key = opt_defined(name, !want_bool)
-        prep = options[key][:prepare].call(value)
-        options[key][:value] = prep
+      if opt_defined(name, !want_bool)
+        set = options[name.to_sym]
+        prep = set[:prepare].call(value)
+        set[:value] = prep
       else
         set = ( undefined[name.to_sym] ||= { undefined: true } )
         set[:value] = value
@@ -119,7 +120,7 @@ module FixedWidth
     protected
 
     def each_opt(undefined = false)
-      return enum_for(:each_opt) unless block_given?
+      return enum_for(:each_opt, undefined) unless block_given?
       over = (undefined && undefined_options) || {}
       over.merge(options).each do |key, conf|
         yield conf.merge(key: key)
