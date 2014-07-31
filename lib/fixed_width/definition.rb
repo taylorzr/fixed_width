@@ -32,7 +32,7 @@ module FixedWidth
         Definition has duplicate #{type} with name '#{name}'
       }.squish if parts[type][name]
       opts = opts.merge(name: name, definition: self)
-      part = FixedWidth::Section.new(name, opts)
+      part = FixedWidth::Section.new(opts)
       yield(part)
       parts[type][name] = part
     end

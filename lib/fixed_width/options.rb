@@ -105,30 +105,39 @@ module FixedWidth
       nil
     end
 
-    def set_opt(name, value)
-      key = opt_defined(name)
-      prep = options[key][:prepare].call(value)
-      options[key][:value] = prep
+    def set_opt(name, value, undefined = nil)
+      want_bool = undefined.is_a?(Hash)
+      if key = opt_defined(name, !want_bool)
+        prep = options[key][:prepare].call(value)
+        options[key][:value] = prep
+      else
+        set = ( undefined[name.to_sym] ||= { undefined: true } )
+        set[:value] = value
+      end
     end
 
     protected
 
-    def each_opt
+    def each_opt(undefined = false)
       return enum_for(:each_opt) unless block_given?
-      options.each do |key, conf|
+      over = (undefined && undefined_options) || {}
+      over.merge(options).each do |key, conf|
         yield conf.merge(key: key)
       end
     end
 
     def merge_options(other, mopts)
-      other.each_opt { |conf|
+      other.each_opt(true) { |conf|
         key = conf[:key]
         if opt_defined(key, false)
           pref = mopts[:prefer]
           mopt_error(:prefer, pref) unless [:self, :other].include?(pref)
           if using_default?(options[key]) # self is default
             if using_default?(conf) # other is default
-              set_opt(key, conf[:default]) if pref == :other
+              if pref == :other
+                prep = options[key][:prepare].call(value)
+                options[key][:default] = prep
+              end
             else # other is value
               set_opt(key, conf[:value])
             end
@@ -139,15 +148,25 @@ module FixedWidth
           end
         else
           mi = mopts[:missing]
-          mopt_error(:missing, mi) unless [:import, :raise, :skip].include?(mi)
+          mi_valid = [:import, :raise, :skip, :undefined].include?(mi)
+          mopt_error(:missing, mi) unless mi_valid
           case mi
+          when :undefined
+            undefined_options[key] ||= { undefined: true }
+            [:value, :default].each do |vt|
+              undefined_options[key][vt] = conf[vt] if conf.key?(vt)
+            end
           when :import
-            options[key] = conf.reject{ |k,v| k == :key }
+            options[key] = conf.reject{ |k,v| k == :key } if conf[:prepare]
           when :raise
             raise FixedWidth::ConfigError.new "Cannot merge option :#{key}"
           end
         end
       }
+    end
+
+    def undefined_options
+      @undefined_options ||= {}
     end
 
     private
@@ -164,11 +183,11 @@ module FixedWidth
 
     def initialize_options(input)
       if input.is_a?(FixedWidth::Options)
-        mopts = { prefer: :self, missing: :skip }
+        mopts = { prefer: :self, missing: :undefined }
         merge_options(input, mopts)
       elsif input.is_a?(Hash)
         input.each do |k,v|
-          set_opt(k,v)
+          set_opt(k,v, undefined_options)
         end
       else
         raise FixedWidth::ConfigError.new %{

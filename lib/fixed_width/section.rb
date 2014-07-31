@@ -19,11 +19,12 @@ module FixedWidth
 
     def initialize(opts)
       initialize_options(opts)
+      initialize_options(definition)
     end
 
     def column(name, length, opts={})
       # Construct column
-      col = Column.new opts.merge(name: name, length: length)
+      col = make_column(opts.merge(name: name, length: length))
       # Check name
       raise FixedWidth::ConfigError.new %{
         Invalid Name: '#{col.name}' is a reserved keyword!
@@ -39,7 +40,7 @@ module FixedWidth
     def spacer(length, pad=nil)
       opts = { name: :spacer, length: length }
       opts[:padding] = pad if pad
-      col = Column.new(opts)
+      col = make_column(opts)
       columns << col
       col
     end
@@ -55,6 +56,7 @@ module FixedWidth
         Template '#{name}' not found as a known template.
       }.squish unless template
       template.columns.each do |col|
+        col.merge_options(self, prefer: :self, missing: :undefined)
         unless RESERVED_NAMES.include?(col.name)
           gn = check_duplicates(col.group, col.name)
           group(gn) << col.name
@@ -137,6 +139,12 @@ module FixedWidth
         you cannot have a group and column of the same name.
       }.squish if groups.key?(name)
       gn
+    end
+
+    def make_column(*args)
+      col = Column.new(*args)
+      col.merge_options(self, prefer: :self, missing: :undefined)
+      col
     end
 
   end
