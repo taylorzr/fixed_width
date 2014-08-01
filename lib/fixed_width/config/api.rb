@@ -61,7 +61,7 @@ module FixedWidth
       end
 
       def options
-        @options ||= self.class.options.opts
+        @options ||= self.class.options.opts.dup
       end
 
       private

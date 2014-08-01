@@ -156,8 +156,13 @@ module FixedWidth
         end
       end
 
+      def dup
+        mopts = { prefer: :other, missing: :import }
+        self.class.new({}).merge!(self,mopts)
+      end
+
       def merge(other, mopts)
-        new({}).merge!(self,mopts).merge!(other,mopts)
+        dup.merge!(other,mopts)
       end
 
       def merge!(other, mopts)
