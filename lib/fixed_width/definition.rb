@@ -1,11 +1,11 @@
 module FixedWidth
   class Definition
-    include Options
+    include Config::API
 
-    options(
+    options.define(
       parse: { default: :in_order, validate: FixedWidth::Parser::ParseTypes }
     )
-    opt_settings( :reader => :parse )
+    options.configure( :reader => :parse )
 
     def initialize(opts={})
       initialize_options(opts)

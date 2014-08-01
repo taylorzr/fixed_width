@@ -1,15 +1,15 @@
 module FixedWidth
   class Section
-    include Options
+    include Config::API
 
-    options(
-      name: { transform: :to_sym, validate: blank },
+    options.define(
+      name: { transform: :to_sym, validate: :blank },
       optional: { default: false, validate: [true, false] },
       singular: { default: false, validate: [true, false] },
       definition: { validate: FixedWidth::Definition },
-      trap: { transform: nil_or_proc }
+      trap: { transform: :nil_or_proc }
     )
-    opt_settings(
+    options.configure(
       required: [:name, :definition],
       reader: [:name, :definition, :optional, :singular],
       writer: [:optional, :singular]
@@ -19,7 +19,7 @@ module FixedWidth
 
     def initialize(opts)
       initialize_options(opts)
-      initialize_options(definition)
+      initialize_options(definition.options)
     end
 
     def column(name, length, opts={})
@@ -56,7 +56,7 @@ module FixedWidth
         Template '#{name}' not found as a known template.
       }.squish unless template
       template.columns.each do |col|
-        col.merge_options(self, prefer: :self, missing: :undefined)
+        col.options.merge!(self.options, prefer: :self, missing: :undefined)
         unless RESERVED_NAMES.include?(col.name)
           gn = check_duplicates(col.group, col.name)
           group(gn) << col.name
@@ -143,7 +143,7 @@ module FixedWidth
 
     def make_column(*args)
       col = Column.new(*args)
-      col.merge_options(self, prefer: :self, missing: :undefined)
+      col.options.merge!(self.options, prefer: :self, missing: :undefined)
       col
     end
 

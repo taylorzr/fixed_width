@@ -1,19 +1,19 @@
 module FixedWidth
   class Column
-    include Options
+    include Config::API
 
-    options(
-      name: { transform: :to_sym, validate: blank },
-      length: { transform: to_int },
-      parser: { transform: nil_or_proc },
-      formatter: { default: :to_s, transform: nil_or_proc },
+    options.define(
+      name: { transform: :to_sym, validate: :blank },
+      length: { transform: :to_int },
+      parser: { transform: :nil_or_proc },
+      formatter: { default: :to_s, transform: :nil_or_proc },
       padding: { default: ' ', validate: String },
       truncate: { default: false, validate: [true, false] },
       nil_blank: { default: false, validate: [true, false] },
       align: { default: :right, validate: [nil, :left, :right, :none] },
       group: {}
     )
-    opt_settings(
+    options.configure(
       required: [:name, :length],
       reader: [:name, :length, :align, :padding, :truncate, :group]
     )

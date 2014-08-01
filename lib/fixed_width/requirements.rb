@@ -8,8 +8,11 @@ require 'active_support/multibyte'
 
 require 'fixed_width/version'
 require 'fixed_width/errors'
-require 'fixed_width/helpers'
-require 'fixed_width/options'
+
+require 'fixed_width/config/helpers'
+require 'fixed_width/config/options'
+require 'fixed_width/config/api'
+
 require 'fixed_width/parser'
 require 'fixed_width/generator'
 require 'fixed_width/definition'
