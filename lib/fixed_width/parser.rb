@@ -44,7 +44,7 @@ module FixedWidth
         line_number += 1
       end
       if opts[:verify_lines] && !failed.empty?
-        lines = failed.map { |ind, line| "\n#{ind+1}: #{line}" }
+        lines = failed.map { |ind, ln| "\n#{ind+1}: #{ln}" }
         raise FixedWidth::UnusedLineError.new(
           "Could not match the following lines:#{lines}")
       end
