@@ -113,7 +113,7 @@ module FixedWidth
 
     def column(name, length, opts={})
       # Construct column
-      col = make_column(opts.merge(name: name, length: length))
+      col = Column.new(opts.merge(name: name, length: length, parent: self))
       # Check name
       raise ConfigError.new %{
         Invalid Name: '#{col.name}' is a reserved keyword!
@@ -127,9 +127,9 @@ module FixedWidth
     end
 
     def spacer(length, pad=nil)
-      opts = { name: :spacer, length: length }
+      opts = { name: :spacer, length: length, parent: self }
       opts[:padding] = pad if pad
-      col = make_column(opts)
+      col = Column.new(opts)
       fields << col
       col
     end
@@ -217,12 +217,6 @@ module FixedWidth
     end
 
     private
-
-    def make_column(*args)
-      col = Column.new(*args)
-      col.options.merge!(self.options, prefer: :self, missing: :undefined)
-      col
-    end
 
     def validate_schema_func_args(args, has_block)
       case args.count

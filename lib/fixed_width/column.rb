@@ -11,6 +11,7 @@ module FixedWidth
       truncate: { default: false, validate: [true, false] },
       nil_blank: { default: false, validate: [true, false] },
       align: { default: :right, validate: [nil, :left, :right, :none] },
+      parent: { validate: Config::API },
       group: {}
     )
     options.configure(
@@ -20,6 +21,7 @@ module FixedWidth
 
     def initialize(opts)
       initialize_options(opts)
+      initialize_options(parent.options) if parent
     end
 
     def parse(value, section)
