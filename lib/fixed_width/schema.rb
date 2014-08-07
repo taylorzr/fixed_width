@@ -15,9 +15,6 @@ module FixedWidth
       writer: [:optional, :singular]
     )
 
-    RESERVED_NAMES = [:spacer, :template, :section].freeze
-
-
     def template(name)
       template = definition.templates(name).first
       raise FixedWidth::ConfigError.new %{
@@ -58,12 +55,6 @@ module FixedWidth
       data
     end
 
-    def match(raw_line)
-      raw_line.nil? ? false :
-        raw_line.length == self.length &&
-          (!trap || trap.call(raw_line))
-    end
-
     # protected
     def groups
       @groups ||= {}
@@ -94,11 +85,16 @@ module FixedWidth
 
 #######################################################
 
+    RESERVED_NAMES = [:spacer].freeze
 
     def initialize(opts)
       initialize_options(opts)
       initialize_options(parent.options)
       @in_setup = false
+    end
+
+    def valid?
+      errors.empty?
     end
 
     # DSL methods
@@ -108,6 +104,7 @@ module FixedWidth
       if block_given? # new sub-schema
         child = Schema.new(opts.merge(parent: self))
         child.setup(&block)
+        lookup(child.name, child)
         fields << child
       else # existing schema
         fields << opts # do the lookup lazily
@@ -177,10 +174,46 @@ module FixedWidth
 
     # Parsing methods
 
+    def match(raw_line)
+      raw_line.nil? ? false :
+        raw_line.length == self.length &&
+          (!trap || trap.call(raw_line))
+    end
+
     protected
 
     def fields
       @fields ||= []
+    end
+
+    def errors
+      fields.reduce([]) { |errs, field|
+        errs + case field
+        when Hash
+          if schema_name = field[:schema_name] || field[:name]
+            lookup(schema_name) ? [] :
+              ["Cannot find schema named `#{schema_name.inspect}`"]
+          else
+            ["Missing schema name: #{field.inspect}"]
+          end
+        when Column then []
+        when Schema then field.errors
+        else ["Unknown field type: #{field.inspect}"]
+        end
+      }
+    end
+
+    def lookup(schema_name, sval = nil)
+      @lookup ||= {}
+      @lookup[schema_name] = nil if sval
+      @lookup[schema_name] ||= case
+        when sval.is_a?(Schema) then sval
+        when parent.is_a?(Schema)
+          parent.lookup(schema_name)
+        when parent.respond_to?(:schemas)
+          parent.schemas(schema_name).first
+        else nil
+      end
     end
 
     private

@@ -25,7 +25,7 @@ module FixedWidth
                   ->(val) { ":#{key} must be one of #{arg.inspect}, got '#{val.inspect}'" } )
                 when Proc then err_func( arg,
                   ->(val) { "'#{val.inspect}' is an invalid value for :#{key}" } )
-                when Class then err_func( ->(val) { arg === val },
+                when Class, Module then err_func( ->(val) { arg === val },
                   ->(val) { ":#{key} must be a #{arg}, got '#{val.inspect}'" } )
                 else err_func( ->(val) { arg == val },
                   ->(val) { ":#{key} must equal #{arg}, got '#{val.inspect}'" } )
