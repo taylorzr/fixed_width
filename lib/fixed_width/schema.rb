@@ -108,6 +108,24 @@ module FixedWidth
       end
     end
 
+    ####################
+
+    def schema
+      #
+    end
+
+    def export
+      #
+    end
+
+    def respond_to_missing?(method, include_private = false)
+      #
+    end
+
+    def method_missing(method, *args, &block)
+      #
+    end
+
     protected
 
     def columns
