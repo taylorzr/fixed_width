@@ -20,6 +20,7 @@ module FixedWidth
     def initialize(opts)
       initialize_options(opts)
       initialize_options(definition.options)
+      @in_setup = false
     end
 
     def column(name, length, opts={})
@@ -43,11 +44,6 @@ module FixedWidth
       col = make_column(opts)
       columns << col
       col
-    end
-
-    def trap(&block)
-      set_opt(:trap, block) if block_given?
-      opt(:trap)
     end
 
     def template(name)
@@ -96,40 +92,58 @@ module FixedWidth
           (!trap || trap.call(raw_line))
     end
 
-    def method_missing(method, *args)
-      column(method, *args)
-    end
 
-    def length
-      @length = nil if @columns_hash != columns.hash
-      @length ||= begin
-        @columns_hash = columns.hash
-        columns.map(&:length).reduce(0,:+)
-      end
-    end
 
-    ####################
+    # DSL methods
 
-    def schema
+    def schema(*args, &bock)
       #
     end
 
-    def export
-      #
+    def trap(&block)
+      set_opt(:trap, block) if block_given?
+      opt(:trap)
     end
 
-    def respond_to_missing?(method, include_private = false)
-      #
+    def setup(&block)
+      raise SchemaError, "already in #setup; recursion forbidden" if @in_setup
+      raise SchemaError, "#setup requires a block!" unless block_given?
+      @in_setup = true
+      instance_eval(&block)
+    ensure
+      @in_setup = false
+    end
+
+    def respond_to_missing?(method, *)
+      @in_setup || super
     end
 
     def method_missing(method, *args, &block)
-      #
+      return super unless @in_setup
+      return schema(method, *args, &block) if block_given?
+      column(method, *args)
     end
+
+    # Data methods
+
+    def length
+      @length = nil if @fields_hash != fields.hash
+      @length ||= begin
+        @fields_hash = fields.hash
+        fields.map(&:length).reduce(0,:+)
+      end
+    end
+
+    def export
+      fields.to_enum
+    end
+
+    # Parsing methods
 
     protected
 
-    def columns
-      @columns ||= []
+    def fields
+      @fields ||= []
     end
 
     def groups
