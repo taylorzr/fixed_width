@@ -6,45 +6,17 @@ module FixedWidth
       name: { transform: :to_sym, validate: :blank },
       optional: { default: false, validate: [true, false] },
       singular: { default: false, validate: [true, false] },
-      definition: { validate: FixedWidth::Definition },
+      parent: { validate: Config::API },
       trap: { transform: :nil_or_proc }
     )
     options.configure(
-      required: [:name, :definition],
-      reader: [:name, :definition, :optional, :singular],
+      required: [:name, :parent],
+      reader: [:name, :parent, :optional, :singular],
       writer: [:optional, :singular]
     )
 
     RESERVED_NAMES = [:spacer, :template, :section].freeze
 
-    def initialize(opts)
-      initialize_options(opts)
-      initialize_options(definition.options)
-      @in_setup = false
-    end
-
-    def column(name, length, opts={})
-      # Construct column
-      col = make_column(opts.merge(name: name, length: length))
-      # Check name
-      raise FixedWidth::ConfigError.new %{
-        Invalid Name: '#{col.name}' is a reserved keyword!
-      }.squish if RESERVED_NAMES.include?(col.name)
-      # Check for duplicates
-      gn = check_duplicates(col.group, col.name)
-      # Add the new column
-      columns << col
-      group(gn) << col.name
-      col
-    end
-
-    def spacer(length, pad=nil)
-      opts = { name: :spacer, length: length }
-      opts[:padding] = pad if pad
-      col = make_column(opts)
-      columns << col
-      col
-    end
 
     def template(name)
       template = definition.templates(name).first
@@ -92,12 +64,77 @@ module FixedWidth
           (!trap || trap.call(raw_line))
     end
 
+    # protected
+    def groups
+      @groups ||= {}
+    end
 
+    def group(name = nil)
+      groups[name] ||= Set.new
+    end
+
+    #private
+    def check_duplicates(gn, name)
+      gns = gn ? "'#{gn}'" : "default"
+      raise FixedWidth::DuplicateNameError.new %{
+        You have already defined a column named
+        '#{name}' in the #{gns} group.
+      }.squish if group(gn).include?(name)
+      raise FixedWidth::DuplicateNameError.new %{
+        You have already defined a column named #{gns};
+        you cannot have a group and column of the same name.
+      }.squish if group(nil).include?(gn)
+      raise FixedWidth::DuplicateNameError.new %{
+        You have already defined a group named '#{name}';
+        you cannot have a group and column of the same name.
+      }.squish if groups.key?(name)
+      gn
+    end
+
+
+#######################################################
+
+
+    def initialize(opts)
+      initialize_options(opts)
+      initialize_options(parent.options)
+      @in_setup = false
+    end
 
     # DSL methods
 
-    def schema(*args, &bock)
-      #
+    def schema(*args, &block)
+      opts = validate_schema_func_args(args, block_given?)
+      if block_given? # new sub-schema
+        child = Schema.new(opts.merge(parent: self))
+        child.setup(&block)
+        fields << child
+      else # existing schema
+        fields << opts # do the lookup lazily
+      end
+    end
+
+    def column(name, length, opts={})
+      # Construct column
+      col = make_column(opts.merge(name: name, length: length))
+      # Check name
+      raise ConfigError.new %{
+        Invalid Name: '#{col.name}' is a reserved keyword!
+      }.squish if RESERVED_NAMES.include?(col.name)
+      # Check for duplicates
+      gn = check_duplicates(col.group, col.name)
+      # Add the new column
+      fields << col
+      group(gn) << col.name
+      col
+    end
+
+    def spacer(length, pad=nil)
+      opts = { name: :spacer, length: length }
+      opts[:padding] = pad if pad
+      col = make_column(opts)
+      fields << col
+      col
     end
 
     def trap(&block)
@@ -135,7 +172,7 @@ module FixedWidth
     end
 
     def export
-      fields.to_enum
+      fields.enum_for(:grep, Schema)
     end
 
     # Parsing methods
@@ -146,37 +183,44 @@ module FixedWidth
       @fields ||= []
     end
 
-    def groups
-      @groups ||= {}
-    end
-
-    def group(name = nil)
-      groups[name] ||= Set.new
-    end
-
     private
-
-    def check_duplicates(gn, name)
-      gns = gn ? "'#{gn}'" : "default"
-      raise FixedWidth::DuplicateNameError.new %{
-        You have already defined a column named
-        '#{name}' in the #{gns} group.
-      }.squish if group(gn).include?(name)
-      raise FixedWidth::DuplicateNameError.new %{
-        You have already defined a column named #{gns};
-        you cannot have a group and column of the same name.
-      }.squish if group(nil).include?(gn)
-      raise FixedWidth::DuplicateNameError.new %{
-        You have already defined a group named '#{name}';
-        you cannot have a group and column of the same name.
-      }.squish if groups.key?(name)
-      gn
-    end
 
     def make_column(*args)
       col = Column.new(*args)
       col.options.merge!(self.options, prefer: :self, missing: :undefined)
       col
+    end
+
+    def validate_schema_func_args(args, has_block)
+      case args.count
+      when 1
+        arg = args.first
+        return {name: arg.to_sym} if arg.respond_to?(:to_sym)
+        if arg.is_a?(Hash)
+          return arg if arg.key?(:name) || arg.key?(:schema_name)
+          if !has_block && arg.count == 1
+            list = [arg.keys.first, {schema_name: arg.values.first}]
+            return validate_schema_func_args(list, has_block)
+          end
+        end
+      when 2
+        name, opts = args
+        if name.respond_to?(:to_sym)
+          if opts.is_a?(Hash)
+            if !opts.key?(:name) || !opts.key?(:schema_name)
+              names = {name: name.to_sym}
+              names[:schema_name] = opts[:name] if opts.key?(:name)
+              return opts.merge(names)
+            end
+          end
+        end
+      end
+      expected = "[name, options = {}]"
+      expected += " OR [{name: schema_name}]" unless has_block
+      raise SchemaError.new %{
+        Unexpected arguments for #schema. Expected #{expected}.
+        Got #{args.inspect}#{" and a block" if has_block}
+      }.squish
     end
 
   end
