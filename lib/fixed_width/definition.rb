@@ -2,43 +2,50 @@ module FixedWidth
   class Definition
     include Config::API
 
-    options.define(
-      parse: { default: :in_order, validate: FixedWidth::Parser::ParseTypes }
-    )
-    options.configure( :reader => :parse )
-
     def initialize(opts={})
       initialize_options(opts)
     end
 
-    [:section, :template].each do |type|
-      define_method(type) do |name, opts={}, &block|
-        add_part(type, name, opts, &block)
+    def schemata(opts = {}, &blk)
+      if block_given?
+        schema = Schema.new(opts.merge(parent: self))
+        schema.instance_eval(&blk)
+        add_schema(schema)
+      else
+        raise SchemaError.new %{
+          #schemata was given an options hash without a block!
+        }.squish unless opts.blank?
       end
-      define_method("#{type}s".to_sym) do |*keys|
-        return parts[type].values if keys.blank?
-        keys.map{ |key| parts[type][key] }
-      end
+      schema_map.keys
     end
 
-    def method_missing(method, *args, &block)
-      section(method, *args, &block)
+    def schemas(*keys)
+      return schema_map.values if keys.blank?
+      keys.map{ |key| schema_map[key] }
+    end
+
+    def parser
+      #
+    end
+
+    def add_schema(schema)
+      additions = schema.export
+      dups = duplicates(schema_map.keys + additions.map(&:name))
+      raise DuplicateNameError.new %{
+        Definition has duplicate schemas named: #{dups.inspect}
+      }.squish unless dups.blank?
+      additions.each { |s| schema_map[s.name] = s }
     end
 
     private
 
-    def add_part(type, name, opts, &block)
-      raise FixedWidth::DuplicateNameError.new %{
-        Definition has duplicate #{type} with name '#{name}'
-      }.squish if parts[type][name]
-      opts = opts.merge(name: name, definition: self)
-      part = FixedWidth::Section.new(opts)
-      yield(part)
-      parts[type][name] = part
+    def schema_map
+      @schema_map ||= {}
     end
 
-    def parts
-      @parts ||= { section: {}, template: {} }
+    def duplicates(list)
+      counts = list.reduce(Hash.new(0)) { |h,el| h[el] += 1; h }
+      counts.select{ |el,c| c > 1 }.keys.sort
     end
 
   end

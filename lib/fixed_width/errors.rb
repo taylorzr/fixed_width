@@ -1,5 +1,6 @@
 module FixedWidth
   class BaseError < StandardError; end
+  class SchemaError < BaseError; end
   class ParseError < BaseError; end
   class DuplicateNameError < BaseError; end
   class ConfigError < BaseError; end
