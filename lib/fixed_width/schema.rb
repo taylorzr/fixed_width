@@ -15,22 +15,6 @@ module FixedWidth
       writer: [:optional, :singular]
     )
 
-    def template(name)
-      template = definition.templates(name).first
-      raise FixedWidth::ConfigError.new %{
-        Template '#{name}' not found as a known template.
-      }.squish unless template
-      template.columns.each do |col|
-        col.options.merge!(self.options, prefer: :self, missing: :undefined)
-        unless RESERVED_NAMES.include?(col.name)
-          gn = check_duplicates(col.group, col.name)
-          group(gn) << col.name
-        end
-        columns << col
-      end
-      template
-    end
-
     def format(data)
       columns.map do |c|
         hash = c.group ? data[c.group] : data
@@ -172,6 +156,10 @@ module FixedWidth
       fields.enum_for(:grep, Schema)
     end
 
+    def columns
+      fields.enum_for(:grep, Column)
+    end
+
     # Parsing methods
 
     def match(raw_line)
@@ -209,9 +197,9 @@ module FixedWidth
       @lookup[schema_name] ||= case
         when sval.is_a?(Schema) then sval
         when parent.is_a?(Schema)
-          parent.lookup(schema_name)
+          pass_options(parent.lookup(schema_name))
         when parent.respond_to?(:schemas)
-          parent.schemas(schema_name).first
+          pass_options(parent.schemas(schema_name).first)
         else nil
       end
     end
@@ -248,6 +236,16 @@ module FixedWidth
         Unexpected arguments for #schema. Expected #{expected}.
         Got #{args.inspect}#{" and a block" if has_block}
       }.squish
+    end
+
+    def pass_options(schema)
+      if schema
+        merge_ops = {prefer: :self, missing: :undefined}
+        schema.columns.each do |col|
+          col.options.merge!(self.options, merge_ops)
+        end
+      end
+      schema
     end
 
   end
