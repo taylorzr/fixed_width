@@ -25,7 +25,7 @@ module FixedWidth
     end
 
     def parse(value, section)
-      return nil if opt(:nil_blank) && value.blank?
+      return nil if opt(:nil_blank) && value.to_s.blank?
       aligned = case align
       when :right then value.lstrip
       when :left then value.rstrip
