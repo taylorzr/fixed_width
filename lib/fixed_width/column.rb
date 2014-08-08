@@ -16,7 +16,7 @@ module FixedWidth
     )
     options.configure(
       required: [:name, :length],
-      reader: [:name, :length, :align, :padding, :truncate, :group]
+      reader: [:name, :length, :align, :padding, :truncate, :parent, :group]
     )
 
     def initialize(opts)

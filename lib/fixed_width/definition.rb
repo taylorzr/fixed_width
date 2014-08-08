@@ -8,7 +8,7 @@ module FixedWidth
 
     def schemata(opts = {}, &blk)
       if block_given?
-        schema = Schema.new(opts.merge(parent: self))
+        schema = Schema.new(opts.merge(name: 'base', parent: self))
         schema.setup(&blk)
         add_schema(schema)
       else

@@ -79,6 +79,9 @@ module FixedWidth
       return super unless @in_setup
       return schema(method, *args, &block) if block_given?
       column(method, *args)
+    rescue => e
+      b = [block_given?, block.try(:source_location)]
+      raise SchemaError, [method, args, b, e.inspect].inspect
     end
 
     # Data methods
@@ -255,7 +258,7 @@ module FixedWidth
         Field has no name: #{field.inspect}
       }.squish unless field_name
       field_types = [
-        [export, :name, "a schema"],
+        [schemas, :name, "a schema"],
         [columns, :name, "a column"],
         [imported_schemas, :first, "an imported schema"]
       ]
