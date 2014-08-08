@@ -31,9 +31,9 @@ module FixedWidth
                   ->(val) { ":#{key} must equal #{arg}, got '#{val.inspect}'" } )
                 end
               # Put it together
-              option_config[key][:prepare] = lambda { |value|
-                value = transform.call(value) if transform
-                validate.call(value) if validate
+              option_config[key][:prepare] = lambda { |value, doT = true, doV = true|
+                value = transform.call(value) if transform && doT
+                validate.call(value) if validate && doV
                 value
               }
               # Default Value
@@ -171,18 +171,22 @@ module FixedWidth
           if self.defined?(key)
             pref = mopts[:prefer]
             mopt_error(:prefer, pref) unless [:self, :other].include?(pref)
-            if using_default?(options[key]) # self is default
-              if using_default?(conf) # other is default
-                if pref == :other
-                  prep = options[key][:prepare].call(value)
-                  options[key][:default] = prep
-                end
-              else # other is value
-                set(key, conf[:value])
-              end
-            else # self is value
-              if !using_default?(conf) # other is value
+            # priority: value > default > none
+            # replace <self> with <other> if priority(other) > priority(self)
+            # break ties according to :prefer
+            if options[key].key?(:value) # self is value
+              if conf.key?(:value) # other is value
                 set(key, conf[:value]) if pref == :other
+              end
+            else # self is default or none
+              if conf.key?(:value) # other is value
+                set(key, conf[:value])
+              elsif conf.key?(:default) # other is default
+                # if self is none or we prefer the other default
+                if !options[key].key?(:default) || pref == :other
+                  options[key][:prepare].call(conf[:default], false)
+                  options[key][:default] = conf[:default]
+                end
               end
             end
           else
