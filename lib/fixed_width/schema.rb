@@ -22,23 +22,6 @@ module FixedWidth
       end.join
     end
 
-    def parse(line)
-      data = groups.reduce({}) { |acc, (name,cols)|
-        acc[name] = {} if name
-        acc
-      }
-      cursor = 0
-      columns.each do |c|
-        unless c.name == :spacer
-          store = c.group ? data[c.group] : data
-          capture = line.mb_chars[cursor..cursor+c.length-1] || ''
-          store[c.name] = c.parse(capture, self)
-        end
-        cursor += c.length
-      end
-      data
-    end
-
     # protected
     def groups
       @groups ||= {}
@@ -166,6 +149,37 @@ module FixedWidth
       raw_line.nil? ? false :
         raw_line.length == self.length &&
           (!trap || trap.call(raw_line))
+    end
+
+    def parse(line, start_pos = 0)
+      data = {}
+      cursor = start_pos
+      fields.each do |f|
+        case f
+        when Column
+          unless c.name == :spacer
+            # need to update groups for recursive schema
+            # store = c.group ? data[c.group] : data
+            capture = line.mb_chars[cursor..cursor+c.length-1] || ''
+            data[c.name] = c.parse(capture, self)
+          end
+        when Schema
+          data[f.name] = f.parse(line, cursor)
+        when Hash
+          schema_name = f[:schema_name] || f[:name]
+          schema = schema_name && lookup(schema_name)
+          if schema
+            store_name = f[:name] || f[:schema_name]
+            data[store_name] = f.parse(line, cursor)
+          else
+            raise SchemaError, "Cannot find schema for: #{f.inspect}"
+          end
+        else
+          raise SchemaError, "Unknown field type: #{f.inspect}"
+        end
+        cursor += f.length
+      end
+      data
     end
 
     protected
