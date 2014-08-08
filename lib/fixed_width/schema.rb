@@ -1,5 +1,5 @@
 module FixedWidth
-  class Section
+  class Schema
     include Config::API
 
     options.define(
