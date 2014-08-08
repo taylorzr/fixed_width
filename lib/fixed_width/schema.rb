@@ -161,13 +161,11 @@ module FixedWidth
           data[f.name] = f.parse(line, cursor)
           cursor += f.length
         when Hash
-          if schema = lookup_hash(f)
-            store_name = f[:name] || schema.name
-            data[store_name] = schema.parse(line, cursor)
-            cursor += schema.length
-          else
-            raise SchemaError, "Cannot find schema for: #{f.inspect}"
-          end
+          schema = lookup_hash(f, errs = [])
+          raise SchemaError, errs.join(' ; ') unless schema
+          store_name = f[:name] || schema.name
+          data[store_name] = schema.parse(line, cursor)
+          cursor += schema.length
         else
           raise SchemaError, "Unknown field type: #{f.inspect}"
         end
@@ -179,8 +177,8 @@ module FixedWidth
       # need to update to use groups
       fields.map do |f|
         if f.is_a?(Hash)
-          s = lookup_hash(f)
-          raise SchemaError, "Cannot find schema for: #{f.inspect}" unless s
+          s = lookup_hash(f, errs = [])
+          raise SchemaError, errs.join(' ; ') unless s
           f = s
         end
         f.format(data[f.name])
