@@ -90,7 +90,10 @@ module FixedWidth
       @length = nil if @fields_hash != fields.hash
       @length ||= begin
         @fields_hash = fields.hash
-        fields.map(&:length).reduce(0,:+)
+        fields.map { |f|
+          f, _ = lookup_hash(f) if f.is_a?(Hash)
+          f.length
+        }.reduce(0,:+)
       end
     end
 
