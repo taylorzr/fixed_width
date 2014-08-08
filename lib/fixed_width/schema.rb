@@ -15,13 +15,6 @@ module FixedWidth
       writer: [:optional, :singular]
     )
 
-    def format(data)
-      columns.map do |c|
-        hash = c.group ? data[c.group] : data
-        c.format(hash[c.name])
-      end.join
-    end
-
     # protected
     def groups
       @groups ||= {}
@@ -182,6 +175,13 @@ module FixedWidth
         end
       end
       data
+    end
+
+    def format(data)
+      # need to update to use groups
+      fields.map do |f|
+        f.format(data[f.name])
+      end.join
     end
 
     protected
