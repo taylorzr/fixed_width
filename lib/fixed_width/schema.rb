@@ -161,11 +161,9 @@ module FixedWidth
           data[f.name] = f.parse(line, cursor)
           cursor += f.length
         when Hash
-          schema_name = f[:schema_name] || f[:name]
-          schema = schema_name && lookup(schema_name)
-          if schema
-            store_name = f[:name] || f[:schema_name]
-            data[store_name] = f.parse(line, cursor)
+          if schema = lookup_hash(f)
+            store_name = f[:name] || schema.name
+            data[store_name] = schema.parse(line, cursor)
             cursor += schema.length
           else
             raise SchemaError, "Cannot find schema for: #{f.inspect}"
@@ -180,6 +178,11 @@ module FixedWidth
     def format(data)
       # need to update to use groups
       fields.map do |f|
+        if f.is_a?(Hash)
+          s = lookup_hash(f)
+          raise SchemaError, "Cannot find schema for: #{f.inspect}" unless s
+          f = s
+        end
         f.format(data[f.name])
       end.join
     end
@@ -194,12 +197,8 @@ module FixedWidth
       fields.reduce([]) { |errs, field|
         errs + case field
         when Hash
-          if schema_name = field[:schema_name] || field[:name]
-            lookup(schema_name) ? [] :
-              ["Cannot find schema named `#{schema_name.inspect}`"]
-          else
-            ["Missing schema name: #{field.inspect}"]
-          end
+          lookup_hash(field, hash_err = [])
+          hash_err
         when Column then []
         when Schema then field.errors
         else ["Unknown field type: #{field.inspect}"]
@@ -221,6 +220,18 @@ module FixedWidth
     end
 
     private
+
+    def lookup_hash(h, err = nil)
+      unless schema_name = h[:schema_name] || h[:name]
+        err << "Missing schema name: #{h.inspect}" if err
+        return nil
+      end
+      unless schema = lookup(schema_name)
+        err << "Cannot find schema named `#{schema_name.inspect}`" if err
+        return nil
+      end
+      schema
+    end
 
     def validate_schema_func_args(args, has_block)
       case args.count
