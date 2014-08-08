@@ -15,34 +15,6 @@ module FixedWidth
       writer: [:optional, :singular]
     )
 
-    # protected
-    def groups
-      @groups ||= {}
-    end
-
-    def group(name = nil)
-      groups[name] ||= Set.new
-    end
-
-    #private
-    def check_duplicates(gn, name)
-      gns = gn ? "'#{gn}'" : "default"
-      raise FixedWidth::DuplicateNameError.new %{
-        You have already defined a column named
-        '#{name}' in the #{gns} group.
-      }.squish if group(gn).include?(name)
-      raise FixedWidth::DuplicateNameError.new %{
-        You have already defined a column named #{gns};
-        you cannot have a group and column of the same name.
-      }.squish if group(nil).include?(gn)
-      raise FixedWidth::DuplicateNameError.new %{
-        You have already defined a group named '#{name}';
-        you cannot have a group and column of the same name.
-      }.squish if groups.key?(name)
-      gn
-    end
-
-
 #######################################################
 
     RESERVED_NAMES = [:spacer].freeze
@@ -53,10 +25,6 @@ module FixedWidth
       @in_setup = false
     end
 
-    def valid?
-      errors.empty?
-    end
-
     # DSL methods
 
     def schema(*args, &block)
@@ -64,11 +32,11 @@ module FixedWidth
       if block_given? # new sub-schema
         child = Schema.new(opts.merge(parent: self))
         child.setup(&block)
-        lookup(child.name, child)
-        fields << child
+        field = check_duplicates(child)
       else # existing schema
-        fields << opts # do the lookup lazily
+        field = check_duplicates(opts)
       end
+      (fields << field)[-1]
     end
 
     def column(name, length, opts={})
@@ -78,20 +46,15 @@ module FixedWidth
       raise ConfigError.new %{
         Invalid Name: '#{col.name}' is a reserved keyword!
       }.squish if RESERVED_NAMES.include?(col.name)
-      # Check for duplicates
-      gn = check_duplicates(col.group, col.name)
       # Add the new column
-      fields << col
-      group(gn) << col.name
-      col
+      (fields << check_duplicates(col))[-1]
     end
 
     def spacer(length, pad=nil)
       opts = { name: :spacer, length: length, parent: self }
       opts[:padding] = pad if pad
       col = Column.new(opts)
-      fields << col
-      col
+      (fields << col)[-1]
     end
 
     def trap(&block)
@@ -128,12 +91,25 @@ module FixedWidth
       end
     end
 
-    def export
+    def schemas
       fields.enum_for(:grep, Schema)
     end
 
     def columns
       fields.enum_for(:grep, Column)
+    end
+
+    def imported_schemas
+      return enum_for(:imported_schemas) unless block_given?
+      fields.each do |field|
+        if field.is_a?(Hash) && names = hash_to_name_list(field)
+          yield names
+        end
+      end
+    end
+
+    def valid?
+      errors.empty?
     end
 
     # Parsing methods
@@ -145,14 +121,13 @@ module FixedWidth
     end
 
     def parse(line, start_pos = 0)
+      # need to update to use groups
       data = {}
       cursor = start_pos
       fields.each do |f|
         case f
         when Column
           unless f.name == :spacer
-            # need to update groups for recursive schema
-            # store = c.group ? data[c.group] : data
             capture = line.mb_chars[cursor..cursor+f.length-1] || ''
             data[f.name] = f.parse(capture, self)
           end
@@ -161,13 +136,12 @@ module FixedWidth
           data[f.name] = f.parse(line, cursor)
           cursor += f.length
         when Hash
-          schema = lookup_hash(f, errs = [])
+          schema, store_name = lookup_hash(f, errs = [])
           raise SchemaError, errs.join(' ; ') unless schema
-          store_name = f[:name] || schema.name
           data[store_name] = schema.parse(line, cursor)
           cursor += schema.length
         else
-          raise SchemaError, "Unknown field type: #{f.inspect}"
+          raise SchemaError, field_type_error(f)
         end
       end
       data
@@ -177,11 +151,12 @@ module FixedWidth
       # need to update to use groups
       fields.map do |f|
         if f.is_a?(Hash)
-          s = lookup_hash(f, errs = [])
+          s, sn = lookup_hash(f, errs = [])
           raise SchemaError, errs.join(' ; ') unless s
-          f = s
+          s.format(data[sn])
+        else
+          f.format(data[f.name])
         end
-        f.format(data[f.name])
       end.join
     end
 
@@ -199,14 +174,13 @@ module FixedWidth
           hash_err
         when Column then []
         when Schema then field.errors
-        else ["Unknown field type: #{field.inspect}"]
+        else [field_type_error(field)]
         end
       }
     end
 
     def lookup(schema_name, sval = nil)
       @lookup ||= {}
-      @lookup[schema_name] = nil if sval
       @lookup[schema_name] ||= case
         when sval.is_a?(Schema) then sval
         when parent.is_a?(Schema)
@@ -220,7 +194,8 @@ module FixedWidth
     private
 
     def lookup_hash(h, err = nil)
-      unless schema_name = h[:schema_name] || h[:name]
+      store_name, schema_name = hash_to_name_list(h)
+      unless schema_name
         err << "Missing schema name: #{h.inspect}" if err
         return nil
       end
@@ -228,7 +203,7 @@ module FixedWidth
         err << "Cannot find schema named `#{schema_name.inspect}`" if err
         return nil
       end
-      schema
+      return schema, store_name
     end
 
     def validate_schema_func_args(args, has_block)
@@ -271,6 +246,36 @@ module FixedWidth
         end
       end
       schema
+    end
+
+    def check_duplicates(field)
+      field_name = field.is_a?(Hash) ?
+        hash_to_name_list(field).try(:first) : field.name
+      raise SchemaError.new %{
+        Field has no name: #{field.inspect}
+      }.squish unless field_name
+      field_types = [
+        [export, :name, "a schema"],
+        [columns, :name, "a column"],
+        [imported_schemas, :first, "an imported schema"]
+      ]
+      field_types.each do |(list,nm,type)|
+        raise DuplicateNameError.new %{
+          You already have #{type} named '#{field_name}'
+        }.squish if list.find{ |x| field_name == x.send(nm) }
+      end
+      field
+    end
+
+    def field_type_error(f)
+      "Unknown field type: #{f.inspect}"
+    end
+
+    def hash_to_name_list(field)
+      schema_name = field[:schema_name] || field[:name]
+      store_name = field[:name] || schema_name
+      return nil unless store_name && schema_name
+      [store_name, schema_name]
     end
 
   end
