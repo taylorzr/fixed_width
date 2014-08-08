@@ -34,7 +34,10 @@ module FixedWidth
       raise DuplicateNameError.new %{
         Definition has duplicate schemas named: #{dups.inspect}
       }.squish unless dups.blank?
-      additions.each { |s| schema_map[s.name] = s }
+      additions.each { |s|
+        s.set_opt(:parent, self)
+        schema_map[s.name] = s
+      }
     end
 
     def inspect
