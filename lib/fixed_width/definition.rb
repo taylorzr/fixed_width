@@ -37,6 +37,12 @@ module FixedWidth
       additions.each { |s| schema_map[s.name] = s }
     end
 
+    def inspect
+      string = "#<#{self.class.name}:#{self.object_id}"
+      string << " schemas=#{schema_map.keys.inspect}"
+      string << ">"
+    end
+
     private
 
     def schema_map
