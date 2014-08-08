@@ -157,27 +157,29 @@ module FixedWidth
       fields.each do |f|
         case f
         when Column
-          unless c.name == :spacer
+          unless f.name == :spacer
             # need to update groups for recursive schema
             # store = c.group ? data[c.group] : data
-            capture = line.mb_chars[cursor..cursor+c.length-1] || ''
-            data[c.name] = c.parse(capture, self)
+            capture = line.mb_chars[cursor..cursor+f.length-1] || ''
+            data[f.name] = f.parse(capture, self)
           end
+          cursor += f.length
         when Schema
           data[f.name] = f.parse(line, cursor)
+          cursor += f.length
         when Hash
           schema_name = f[:schema_name] || f[:name]
           schema = schema_name && lookup(schema_name)
           if schema
             store_name = f[:name] || f[:schema_name]
             data[store_name] = f.parse(line, cursor)
+            cursor += schema.length
           else
             raise SchemaError, "Cannot find schema for: #{f.inspect}"
           end
         else
           raise SchemaError, "Unknown field type: #{f.inspect}"
         end
-        cursor += f.length
       end
       data
     end
