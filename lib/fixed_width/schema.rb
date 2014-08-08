@@ -264,6 +264,14 @@ module FixedWidth
           You already have #{type} named '#{field_name}'
         }.squish if list.find{ |x| field_name == x.send(nm) }
       end
+      if field.is_a?(Schema)
+        from_lookup = lookup(field.name, field)
+        raise DuplicateNameError.new %{
+          An imported schema of type #{from_lookup.name}
+          conflicts with the new schema: old =
+          #{from_lookup.inspect}, new = #{field.inspect}
+        }.squish if from_lookup != field
+      end
       field
     end
 
