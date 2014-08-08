@@ -92,7 +92,7 @@ module FixedWidth
       @length ||= begin
         @fields_hash = fields.hash
         fields.map { |f|
-          f, _ = lookup_hash(f) if f.is_a?(Hash)
+          f, _ = lookup_hash(f,raiser) if f.is_a?(Hash)
           f.length
         }.reduce(0,:+)
       end
@@ -143,8 +143,7 @@ module FixedWidth
           data[f.name] = f.parse(line, cursor)
           cursor += f.length
         when Hash
-          schema, store_name = lookup_hash(f, errs = [])
-          raise SchemaError, errs.join(' ; ') unless schema
+          schema, store_name = lookup_hash(f,raiser)
           data[store_name] = schema.parse(line, cursor)
           cursor += schema.length
         else
@@ -158,8 +157,7 @@ module FixedWidth
       # need to update to use groups
       fields.map do |f|
         if f.is_a?(Hash)
-          s, sn = lookup_hash(f, errs = [])
-          raise SchemaError, errs.join(' ; ') unless s
+          s, sn = lookup_hash(f,raiser)
           s.format(data[sn])
         else
           f.format(data[f.name])
@@ -291,6 +289,14 @@ module FixedWidth
       store_name = field[:name] || schema_name
       return nil unless store_name && schema_name
       [store_name, schema_name]
+    end
+
+    def raiser
+      @raiser ||= Class.new do
+        def <<(msg)
+          raise SchemaError, msg
+        end
+      end.new
     end
 
   end
