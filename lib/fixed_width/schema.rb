@@ -80,6 +80,7 @@ module FixedWidth
       return schema(method, *args, &block) if block_given?
       column(method, *args)
     rescue => e
+      raise unless e.is_a?(ArgumentError)
       b = [block_given?, block.try(:source_location)]
       raise SchemaError, [method, args, b, e.inspect].inspect
     end
