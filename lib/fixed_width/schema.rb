@@ -227,11 +227,14 @@ module FixedWidth
         name, opts = args
         if name.respond_to?(:to_sym)
           if opts.is_a?(Hash)
-            if !opts.key?(:name) || !opts.key?(:schema_name)
-              names = {name: name.to_sym}
-              names[:schema_name] = opts[:name] if opts.key?(:name)
-              return opts.merge(names)
+            names = case
+            when !opts.key?(:name)
+              {name: name.to_sym}
+            when !opts.key?(:schema_name)
+              {schema_name: name.to_sym}
+            else nil
             end
+            return opts.merge(names) if names
           end
         end
       end
