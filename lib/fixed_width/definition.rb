@@ -29,7 +29,7 @@ module FixedWidth
     end
 
     def add_schema(schema)
-      additions = schema.schemas.map(&:last)
+      additions = schema.schemas
       dups = duplicates(schema_map.keys + additions.map(&:name))
       raise DuplicateNameError.new %{
         Definition has duplicate schemas named: #{dups.inspect}

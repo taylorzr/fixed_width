@@ -98,20 +98,33 @@ module FixedWidth
       fields.to_enum
     end
 
-    [:schemas, :columns, :referenced_schemas].each do |m|
-      type = m.to_s[0...-1]
-      define_method(m) { |&blk| entry_enum(m, type, &blk) }
+    def schemas
+      return enum_for(:schemas) unless block_given?
+      entry_enum(:schema) { |x| yield x.last }
+    end
+
+    def columns
+      return enum_for(:columns) unless block_given?
+      entry_enum(:column) { |x| yield x.last }
+    end
+
+    def referenced_schemas
+      return enum_for(:referenced_schemas) unless block_given?
+      entry_enum(:referenced_schema) { |(name,schema)|
+        schema = schema[:schema_name] if schema.is_a?(Hash)
+        yield [name, schema]
+      }
     end
 
     def inspect
       string = "#<#{self.class.name}:#{self.object_id}"
       string << " name=:#{name}"
       string << ", length=#{length rescue "error"}"
-      string << ", schemas=#{schemas.map(&:first).inspect}"
-      string << ", columns=#{columns.map(&:first).inspect}"
-      refs = referenced_schemas.map{ |(name, s)|
-        sn = s.is_a?(Hash) ? s[:schema_name] : s.name
-        name == sn ? ":#{name}" : "#{name}(:#{sn})"
+      string << ", schemas=#{schemas.map(&:name).inspect}"
+      string << ", columns=#{columns.map(&:name).inspect}"
+      refs = referenced_schemas.map{ |(n,s)|
+        sn = s.is_a?(Schema) ? s.name : s
+        sn == n ? ":#{rs[0]}" : "#{rs[0]}(:#{rs[1]})"
       }
       string << ", referenced_schemas=[#{refs.join(", ")}]"
       string << ", errors=#{errors.inspect}"
@@ -218,26 +231,26 @@ module FixedWidth
       if schema.is_a?(Schema)
         if opts.is_a?(Hash)
           opts.each do |k,v|
-            to_set = ([schema] + schema.columns.map(&:last)).map(&:options)
+            to_set = ([schema] + schema.columns).map(&:options)
             to_set.each{ |t| t.set(k,v,true) }
           end
         elsif opts.is_a?(Config::Options)
           merge_ops = {prefer: :self, missing: :undefined}
           schema.options.merge!(opts, merge_ops)
-          schema.columns.map(&:last).each do |col|
+          schema.columns.each do |col|
             col.options.merge!(opts, merge_ops)
           end
         else
           raiser << "Unknown option type: #{opts.inspect}"
         end
-        schema.schemas.map(&:last).each do |s|
+        schema.schemas.each do |s|
           schema.pass_options(s, opts)
         end
         schema.referenced_schemas.each do |(n,rs)|
-          if rs.is_a?(Hash)
-            schema.pass_options(n, opts)
-          else
+          if rs.is_a?(Schema)
             schema.pass_options(rs, opts)
+          else
+            schema.pass_options(n, opts)
           end
         end
       else
@@ -344,15 +357,14 @@ module FixedWidth
       [store_name, schema_name].map(&:to_sym)
     end
 
-    def entry_enum(for_name, type)
-      return enum_for(for_name) unless block_given?
+    def entry_enum(type)
       fields.each do |field|
         if entry = entries[field]
           if entry[:type] == type
             if entry[:entry]
               yield [field, entry[:entry]]
             else
-              yield [field, entry.dup]
+              yield [field, entry]
             end
           end
         end
@@ -363,7 +375,7 @@ module FixedWidth
 
     def check_schema_conflict(schema)
       conflict = referenced_schemas.find { |(_,s)|
-        sn = s.is_a?(Hash) ? s[:schema_name] : s.name
+        sn = s.is_a?(Schema) ? s.name : s
         sn == schema.name
       }
       raise DuplicateNameError.new %{
