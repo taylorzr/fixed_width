@@ -24,12 +24,12 @@ module FixedWidth
       keys.map{ |key| schema_map[key] }
     end
 
-    def parser
+    def parser(opts = {})
       #
     end
 
     def add_schema(schema)
-      additions = schema.schemas
+      additions = schema.schemas.map(&:last)
       dups = duplicates(schema_map.keys + additions.map(&:name))
       raise DuplicateNameError.new %{
         Definition has duplicate schemas named: #{dups.inspect}

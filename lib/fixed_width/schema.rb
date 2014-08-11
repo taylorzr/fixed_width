@@ -32,11 +32,10 @@ module FixedWidth
       if block_given? # new sub-schema
         child = Schema.new(opts.merge(parent: self))
         child.setup(&block)
-        field = check_duplicates(child)
+        save_field(child)
       else # existing schema
-        field = check_duplicates(opts)
+        save_field(opts)
       end
-      (fields << field)[-1]
     end
 
     def column(name, length, opts={})
@@ -47,14 +46,18 @@ module FixedWidth
         Invalid Name: '#{col.name}' is a reserved keyword!
       }.squish if RESERVED_NAMES.include?(col.name)
       # Add the new column
-      (fields << check_duplicates(col))[-1]
+      save_field(col)
     end
 
     def spacer(length, pad=nil)
-      opts = { name: :spacer, length: length, parent: self }
+      opts = { name: :spacer, length: length}
       opts[:padding] = pad if pad
       col = Column.new(opts)
+      save_field(col)
       (fields << col)[-1]
+
+
+      #TODO FIX
     end
 
     def trap(&block)
@@ -63,8 +66,8 @@ module FixedWidth
     end
 
     def setup(&block)
-      raise SchemaError, "already in #setup; recursion forbidden" if @in_setup
-      raise SchemaError, "#setup requires a block!" unless block_given?
+      raiser << "already in #setup; recursion forbidden" if @in_setup
+      raiser << "#setup requires a block!" unless block_given?
       @in_setup = true
       instance_eval(&block)
     ensure
@@ -82,7 +85,7 @@ module FixedWidth
     rescue => e
       raise unless e.is_a?(ArgumentError)
       b = [block_given?, block.try(:source_location)]
-      raise SchemaError, [method, args, b, e.inspect].inspect
+      raiser << [method, args, b, e.inspect].inspect
     end
 
     # Data methods
@@ -92,43 +95,45 @@ module FixedWidth
       @length ||= begin
         @fields_hash = fields.hash
         fields.map { |f|
-          f, _ = lookup_hash(f,raiser) if f.is_a?(Hash)
-          f.length
+          lookup(f,raiser).length
         }.reduce(0,:+)
       end
     end
 
-    def schemas
-      fields.enum_for(:grep, Schema)
+    def field_names
+      fields.to_enum
     end
 
-    def columns
-      fields.enum_for(:grep, Column)
-    end
-
-    def imported_schemas
-      return enum_for(:imported_schemas) unless block_given?
-      fields.each do |field|
-        if field.is_a?(Hash) && names = hash_to_name_list(field)
-          yield names
-        end
-      end
+    [:schemas, :columns, :referenced_schemas].each do |m|
+      type = m.to_s[0...-1]
+      define_method(m) { |&blk| entry_enum(m, type, &blk) }
     end
 
     def inspect
       string = "#<#{self.class.name}:#{self.object_id}"
       string << " name=:#{name}"
       string << ", length=#{length rescue "error"}"
-      string << ", schemas=#{schemas.map(&:name).inspect}"
-      string << ", columns=#{columns.map(&:name).inspect}"
-      string << ", imported_schemas=[#{imported_schemas.map{ |(stn, scn)|
-        stn == scn ? ":#{stn}" : "#{stn}(:#{scn})" }.join(", ")}]"
+      string << ", schemas=#{schemas.map(&:first).inspect}"
+      string << ", columns=#{columns.map(&:first).inspect}"
+      refs = referenced_schemas.map{ |(name, s)|
+        sn = s.is_a?(Hash) ? s[:schema_name] : s.name
+        name == sn ? ":#{name}" : "#{name}(:#{sn})"
+      }
+      string << ", referenced_schemas=[#{refs.join(", ")}]"
       string << ", errors=#{errors.inspect}"
       string << ">"
     end
 
     def valid?
       errors.empty?
+    end
+
+    def validate!
+      got = errors
+      if got.length > 0
+        raiser << "Schema has errors: #{got.join(" ; ")}"
+      end
+      self
     end
 
     # Parsing methods
@@ -143,23 +148,20 @@ module FixedWidth
       # need to update to use groups
       data = {}
       cursor = start_pos
-      fields.each do |f|
-        case f
+      fields.each do |field|
+        found = lookup(field, raiser)
+        case found
         when Column
-          unless f.name == :spacer
-            capture = line.mb_chars[cursor..cursor+f.length-1] || ''
-            data[f.name] = f.parse(capture, self)
+          unless found.name == :spacer
+            capture = line.mb_chars[cursor..cursor+found.length-1] || ''
+            data[field] = found.parse(capture, self)
           end
-          cursor += f.length
+          cursor += found.length
         when Schema
-          data[f.name] = f.parse(line, cursor)
-          cursor += f.length
-        when Hash
-          schema, store_name = lookup_hash(f,raiser)
-          data[store_name] = schema.parse(line, cursor)
-          cursor += schema.length
+          data[field] = found.parse(line, cursor)
+          cursor += found.length
         else
-          raise SchemaError, field_type_error(f)
+          raise SchemaError, field_type_error(found)
         end
       end
       data
@@ -168,60 +170,102 @@ module FixedWidth
     def format(data)
       # need to update to use groups
       fields.map do |f|
-        if f.is_a?(Hash)
-          s, sn = lookup_hash(f,raiser)
-          s.format(data[sn])
-        else
-          f.format(data[f.name])
-        end
+        found = lookup(f, raiser)
+        found.format(data[f])
       end.join
     end
 
     protected
 
-    def fields
-      @fields ||= []
+    def lookup(name, err = nil)
+      if found = entries[name]
+        return found[:entry] if found.key?(:entry)
+        if found[:type] != "referenced_schema"
+          err << %{
+            Entry missing for field '#{name}' of type '#{found[:type]}'
+          }.squish if err
+        else
+          entry = case
+          when parent.is_a?(Schema)
+            parent.lookup(found[:schema_name])
+          when parent.respond_to?(:schemas)
+            parent.schemas(found[:schema_name]).first
+          end
+          if entry
+            if entry.is_a?(Schema)
+              (found[:passed_options] || []).each do |popts|
+                pass_options(entry, popts)
+              end
+              pass_options(entry, found[:options])
+              pass_options(entry, self.options)
+              return found[:entry] = entry
+            end
+            because = " ; found #{entry.inspect} instead"
+          end
+          err << %{
+            Could not find referenced schema '#{found[:schema_name]}'
+            for field named '#{name}'#{because || ""}
+          }.squish if err
+        end
+      else
+        err << "Could not find field named '#{name}'" if err
+      end
+      nil
+    end
+
+    def pass_options(schema, opts = nil)
+      if found = entries[schema]
+        if !found[:entry] && found[:type] == 'referenced_schema'
+          found[:passed_options] ||= []
+          found[:passed_options] << opts
+          return schema
+        end
+      end
+      if schema.is_a?(Schema)
+        if opts.is_a?(Hash)
+          opts.each do |k,v|
+            to_set = ([schema] + schema.columns.map(&:last)).map(&:options)
+            to_set.each{ |t| t.set(k,v,true) }
+          end
+        elsif opts.is_a?(Config::Options)
+          merge_ops = {prefer: :self, missing: :undefined}
+          schema.options.merge!(opts, merge_ops)
+          schema.columns.map(&:last).each do |col|
+            col.options.merge!(opts, merge_ops)
+          end
+        else
+          raiser << "Unknown option type: #{opts.inspect}"
+        end
+        schema.schemas.map(&:last).each do |s|
+          schema.pass_options(s, opts)
+        end
+        schema.referenced_schemas.each do |(n,rs)|
+          if rs.is_a?(Hash)
+            schema.pass_options(n, opts)
+          else
+            schema.pass_options(rs, opts)
+          end
+        end
+      else
+        raiser << "Cannot pass options to `#{schema.inspect}`"
+      end
+      schema
     end
 
     def errors
       fields.reduce([]) { |errs, field|
-        errs + case field
-        when Hash
-          lookup_hash(field, hash_err = [])
-          hash_err
-        when Column then []
-        when Schema then field.errors
-        else [field_type_error(field)]
+        entry = lookup(field, errs)
+        errs + case entry
+        when Column, NilClass then []
+        when Schema then entry.errors
+        else [field_type_error(entry)]
         end
       }
     end
 
-    def lookup(schema_name, sval = nil)
-      @lookup ||= {}
-      @lookup[schema_name] ||= case
-        when sval.is_a?(Schema) then sval
-        when parent.is_a?(Schema)
-          pass_options(parent.lookup(schema_name))
-        when parent.respond_to?(:schemas)
-          pass_options(parent.schemas(schema_name).first)
-        else nil
-      end
-    end
-
     private
 
-    def lookup_hash(h, err = nil)
-      store_name, schema_name = hash_to_name_list(h)
-      unless schema_name
-        err << "Missing schema name: #{h.inspect}" if err
-        return nil
-      end
-      unless schema = lookup(schema_name)
-        err << "Cannot find schema named `#{schema_name.inspect}`" if err
-        return nil
-      end
-      return schema, store_name
-    end
+    # Argument Handling
 
     def validate_schema_func_args(args, has_block)
       case args.count
@@ -258,52 +302,82 @@ module FixedWidth
       }.squish
     end
 
-    def pass_options(schema)
-      if schema
-        merge_ops = {prefer: :self, missing: :undefined}
-        schema.columns.each do |col|
-          col.options.merge!(self.options, merge_ops)
-        end
-      end
-      schema
+    # Field Handling
+
+    def fields
+      @fields ||= []
     end
 
-    def check_duplicates(field)
-      field_name = field.is_a?(Hash) ?
-        hash_to_name_list(field).try(:first) : field.name
+    def entries
+      @entries ||= {}
+    end
+
+    def save_field(field)
+      if field.is_a?(Hash)
+        field_name, schema_name = hash_to_name_list(field)
+      else
+        field_name = field.name
+      end
       raise SchemaError.new %{
         Field has no name: #{field.inspect}
       }.squish unless field_name
-      field_types = [
-        [schemas, :name, "a schema"],
-        [columns, :name, "a column"],
-        [imported_schemas, :first, "an imported schema"]
-      ]
-      field_types.each do |(list,nm,type)|
+      if existing = entries[field_name]
         raise DuplicateNameError.new %{
-          You already have #{type} named '#{field_name}'
-        }.squish if list.find{ |x| field_name == x.send(nm) }
+          You already have a #{existing[:type]} named '#{field_name}'
+        }.squish
       end
-      if field.is_a?(Schema)
-        from_lookup = lookup(field.name, field)
-        raise DuplicateNameError.new %{
-          An imported schema of type #{from_lookup.name}
-          conflicts with the new schema: old =
-          #{from_lookup.inspect}, new = #{field.inspect}
-        }.squish if from_lookup != field
+      check_schema_conflict(field) if field.is_a?(Schema)
+      fields << field_name
+      entries[field_name] = case field
+        when Schema then {type: 'schema', entry: field}
+        when Column then {type: 'column', entry: field}
+        when Hash
+          {   type: 'referenced_schema', schema_name: schema_name,
+              options: field.reject{ |k,v| [:name, :schema_name].include?(k) }
+          }
+        else raise SchemaError, field_type_error(f)
       end
-      field
-    end
-
-    def field_type_error(f)
-      "Unknown field type: #{f.inspect}"
+      field_name
     end
 
     def hash_to_name_list(field)
       schema_name = field[:schema_name] || field[:name]
       store_name = field[:name] || schema_name
       return nil unless store_name && schema_name
-      [store_name, schema_name]
+      [store_name, schema_name].map(&:to_sym)
+    end
+
+    def entry_enum(for_name, type)
+      return enum_for(for_name) unless block_given?
+      fields.each do |field|
+        if entry = entries[field]
+          if entry[:type] == type
+            if entry[:entry]
+              yield [field, entry[:entry]]
+            else
+              yield [field, entry.dup]
+            end
+          end
+        end
+      end
+    end
+
+    # Exception Handling
+
+    def check_schema_conflict(schema)
+      conflict = referenced_schemas.find { |(_,s)|
+        sn = s.is_a?(Hash) ? s[:schema_name] : s.name
+        sn == schema.name
+      }
+      raise DuplicateNameError.new %{
+        An imported schema of type #{schema.name}
+        conflicts with the new schema: old =
+        #{conflict.inspect}, new = #{schema.inspect}
+      }.squish if conflict
+    end
+
+    def field_type_error(f)
+      "Unknown field type: #{f.inspect}"
     end
 
     def raiser
