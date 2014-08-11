@@ -17,12 +17,13 @@ module FixedWidth
 
 #######################################################
 
-    RESERVED_NAMES = [:spacer].freeze
+    RESERVED_NAMES = /^spacer/
 
     def initialize(opts)
       initialize_options(opts)
       initialize_options(parent.options)
       @in_setup = false
+      @spacer_count = 0
     end
 
     # DSL methods
@@ -39,13 +40,7 @@ module FixedWidth
     end
 
     def column(name, length, opts={})
-      # Construct column
       col = Column.new(opts.merge(name: name, length: length, parent: self))
-      # Check name
-      raise ConfigError.new %{
-        Invalid Name: '#{col.name}' is a reserved keyword!
-      }.squish if RESERVED_NAMES.include?(col.name)
-      # Add the new column
       save_field(col)
     end
 
@@ -53,11 +48,10 @@ module FixedWidth
       opts = { name: :spacer, length: length}
       opts[:padding] = pad if pad
       col = Column.new(opts)
-      save_field(col)
-      (fields << col)[-1]
-
-
-      #TODO FIX
+      name = :"spacer_#{@spacer_count += 1}"
+      fields << name
+      entries[name] = {type: 'spacer', entry: col}
+      name
     end
 
     def trap(&block)
@@ -321,6 +315,9 @@ module FixedWidth
       raise SchemaError.new %{
         Field has no name: #{field.inspect}
       }.squish unless field_name
+      raise SchemaError.new %{
+        Invalid Name: '#{field_name}' is reserved!
+      }.squish if RESERVED_NAMES =~ field_name
       if existing = entries[field_name]
         raise DuplicateNameError.new %{
           You already have a #{existing[:type]} named '#{field_name}'
