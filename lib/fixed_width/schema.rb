@@ -115,6 +115,18 @@ module FixedWidth
       end
     end
 
+    def inspect
+      string = "#<#{self.class.name}:#{self.object_id}"
+      string << " name=:#{name}"
+      string << ", length=#{length rescue "error"}"
+      string << ", schemas=#{schemas.map(&:name).inspect}"
+      string << ", columns=#{columns.map(&:name).inspect}"
+      string << ", imported_schemas=[#{imported_schemas.map{ |(stn, scn)|
+        stn == scn ? ":#{stn}" : "#{stn}(:#{scn})" }.join(", ")}]"
+      string << ", errors=#{errors.inspect}"
+      string << ">"
+    end
+
     def valid?
       errors.empty?
     end
