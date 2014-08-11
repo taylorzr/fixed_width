@@ -100,17 +100,17 @@ module FixedWidth
 
     def schemas
       return enum_for(:schemas) unless block_given?
-      entry_enum(:schema) { |x| yield x.last }
+      entry_enum('schema') { |x| yield x.last }
     end
 
     def columns
       return enum_for(:columns) unless block_given?
-      entry_enum(:column) { |x| yield x.last }
+      entry_enum('column') { |x| yield x.last }
     end
 
     def referenced_schemas
       return enum_for(:referenced_schemas) unless block_given?
-      entry_enum(:referenced_schema) { |(name,schema)|
+      entry_enum('referenced_schema') { |(name,schema)|
         schema = schema[:schema_name] if schema.is_a?(Hash)
         yield [name, schema]
       }
@@ -124,7 +124,7 @@ module FixedWidth
       string << ", columns=#{columns.map(&:name).inspect}"
       refs = referenced_schemas.map{ |(n,s)|
         sn = s.is_a?(Schema) ? s.name : s
-        sn == n ? ":#{rs[0]}" : "#{rs[0]}(:#{rs[1]})"
+        sn == n ? ":#{n}" : "#{n}(:#{sn})"
       }
       string << ", referenced_schemas=[#{refs.join(", ")}]"
       string << ", errors=#{errors.inspect}"
