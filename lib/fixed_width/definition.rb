@@ -24,8 +24,20 @@ module FixedWidth
       keys.map{ |key| schema_map[key] }
     end
 
-    def parser(opts = {})
-      #
+    def parser(name, opts = {}, &blk)
+      if block_given?
+        raise ParseError.new %{
+          There is already a defined parser named '#{name}'
+        }.squish if parsers[name]
+        p = Parser.new(opts.merge(parent: self))
+        p.setup(&blk)
+        parsers[name] = p
+      else
+        raise ParseError.new %{
+          #parser was given an options hash without a block!
+        }.squish unless opts.blank?
+      end
+      parsers[name]
     end
 
     def add_schema(schema)
@@ -50,6 +62,10 @@ module FixedWidth
 
     def schema_map
       @schema_map ||= {}
+    end
+
+    def parsers
+      @parsers ||= {}
     end
 
     def duplicates(list)
