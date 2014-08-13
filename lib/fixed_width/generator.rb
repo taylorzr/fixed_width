@@ -11,7 +11,7 @@ module FixedWidth
         content = data[section.name]
         arrayed_content = Array.wrap(content)
         if !section.optional && arrayed_content.empty?
-          raise FixedWidth::RequiredSectionEmptyError.new(
+          raise RequiredSchemaEmptyError.new(
             "Required section '#{section.name}' was empty. Pass optional: true if this is wrong."
           )
         end

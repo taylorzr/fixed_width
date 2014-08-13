@@ -11,12 +11,11 @@ module FixedWidth
       truncate: { default: false, validate: [true, false] },
       nil_blank: { default: false, validate: [true, false] },
       align: { default: :right, validate: [nil, :left, :right, :none] },
-      parent: { validate: Config::API },
-      group: {}
+      parent: { validate: Config::API }
     )
     options.configure(
       required: [:name, :length],
-      reader: [:name, :length, :align, :padding, :truncate, :parent, :group]
+      reader: [:name, :length, :align, :padding, :truncate, :parent]
     )
 
     def initialize(opts)

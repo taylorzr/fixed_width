@@ -25,11 +25,12 @@ module FixedWidth
     end
 
     def parser(name, opts = {}, &blk)
+      name = name.to_sym
       if block_given?
         raise ParseError.new %{
           There is already a defined parser named '#{name}'
         }.squish if parsers[name]
-        p = Parser.new(opts.merge(parent: self))
+        p = Parser.new(opts.merge(definition: self))
         p.setup(&blk)
         parsers[name] = p
       else

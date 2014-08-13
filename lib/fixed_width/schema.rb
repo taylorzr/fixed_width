@@ -4,18 +4,13 @@ module FixedWidth
 
     options.define(
       name: { transform: :to_sym, validate: :blank },
-      optional: { default: false, validate: [true, false] },
-      singular: { default: false, validate: [true, false] },
       parent: { validate: Config::API },
       trap: { transform: :nil_or_proc }
     )
     options.configure(
       required: [:name, :parent],
-      reader: [:name, :parent, :optional, :singular],
-      writer: [:optional, :singular]
+      reader: [:name, :parent]
     )
-
-#######################################################
 
     RESERVED_NAMES = /^spacer/
 
@@ -192,30 +187,34 @@ module FixedWidth
             Entry missing for field '#{name}' of type '#{found[:type]}'
           }.squish if err
         else
-          entry = case
-          when parent.is_a?(Schema)
-            parent.lookup(found[:schema_name])
-          when parent.respond_to?(:schemas)
-            parent.schemas(found[:schema_name]).first
-          end
-          if entry
-            if entry.is_a?(Schema)
-              (found[:passed_options] || []).each do |popts|
-                pass_options(entry, popts)
-              end
-              pass_options(entry, found[:options])
-              pass_options(entry, self.options)
-              return found[:entry] = entry
-            end
-            because = " ; found #{entry.inspect} instead"
-          end
-          err << %{
-            Could not find referenced schema '#{found[:schema_name]}'
-            for field named '#{name}'#{because || ""}
-          }.squish if err
+          recurse_on = found[:schema_name]
         end
       else
-        err << "Could not find field named '#{name}'" if err
+        recurse_on = name
+      end
+      if recurse_on
+        entry = case
+        when parent.is_a?(Schema)
+          parent.lookup(recurse_on)
+        when parent.respond_to?(:schemas)
+          parent.schemas(recurse_on).first
+        end
+        if entry.is_a?(Schema)
+          if found
+            (found[:passed_options] || []).each do |popts|
+              pass_options(entry, popts)
+            end
+            pass_options(entry, found[:options])
+            pass_options(entry, self.options)
+            found[:entry] = entry
+          end
+          return entry
+        end
+        because = " ; found #{entry.inspect} instead" if entry
+        err << %{
+          Could not find referenced schema '#{recurse_on}' for field
+          named '#{name}' in schema '#{self.name}'#{because || ""}
+        }.squish if err
       end
       nil
     end
@@ -231,7 +230,7 @@ module FixedWidth
       if schema.is_a?(Schema)
         if opts.is_a?(Hash)
           opts.each do |k,v|
-            to_set = ([schema] + schema.columns).map(&:options)
+            to_set = ([schema] + schema.columns.to_a).map(&:options)
             to_set.each{ |t| t.set(k,v,true) }
           end
         elsif opts.is_a?(Config::Options)

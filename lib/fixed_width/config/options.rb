@@ -156,6 +156,14 @@ module FixedWidth
         end
       end
 
+      def to_hash(undefined = false)
+        each_opt(undefined).reduce({}) do |acc, conf|
+          get = [:value,:default].find{ |x| conf.key?(x) }
+          acc[conf[:key]] = conf[get] if get
+          acc
+        end
+      end
+
       def dup
         mopts = { prefer: :other, missing: :import }
         self.class.new({}).merge!(self,mopts)
