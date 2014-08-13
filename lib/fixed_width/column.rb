@@ -31,7 +31,7 @@ module FixedWidth
       else value
       end
       return opt(:parser).call(aligned) if opt(:parser)
-      aligned
+      aligned.to_s
     rescue
       raise FixedWidth::ParseError.new %{
         #{section.name}::#{name}:

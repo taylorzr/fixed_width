@@ -142,7 +142,7 @@ module FixedWidth
 
     def match(raw_line)
       raw_line.nil? ? false :
-        raw_line.length == self.length &&
+        raw_line.rstrip.length <= self.length &&
           (!trap || trap.call(raw_line))
     end
 
