@@ -26,25 +26,14 @@ module FixedWidth
     end
 
     def setup(&block)
-      opts = {repeat: false, ordered: true}.merge(options.to_hash(true))
-      filtered = Section.options.opts.keys.reduce({}) do |acc, key|
-        acc[key] = opts[key] if opts.key?(key)
-        acc
-      end
-      root = Section.new(filtered)
       root.setup(&block)
-      sections << root
       self
     end
 
     def parse
       raise ParseError, "IO is not set!" unless options.set?(:io)
       reset_io!
-      leftover = nil
-      result = sections.map do |section|
-        output, leftover = parse_section(section, leftover)
-        output
-      end.reduce(:merge)
+      result, leftover = parse_section(root, nil)
       if verify_input
         leftover ||= advance_io!
         raise UnusedInputError.new %{
@@ -56,8 +45,15 @@ module FixedWidth
 
     private
 
-    def sections
-      @sections ||= []
+    def root
+      @root ||= begin
+        opts = {repeat: false, ordered: true}.merge(options.to_hash(true))
+        filtered = Section.options.opts.keys.reduce({}) do |acc, key|
+          acc[key] = opts[key] if opts.key?(key)
+          acc
+        end
+        Section.new(filtered)
+      end
     end
 
     def parse_section(section, initial_input)
