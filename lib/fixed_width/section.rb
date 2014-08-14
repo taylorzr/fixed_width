@@ -95,6 +95,20 @@ module FixedWidth
       opt(:repeat)
     end
 
+    def unwrap
+      if list.count == 1 && list.first.is_a?(Section)
+        sect = list.first
+        if !repeat? || sect.repeat?
+          ok = sect.options.without_side_effects do |opts|
+            opts.set(:repeat, repeat?)
+            opts == self.options
+          end
+          return sect.unwrap if ok
+        end
+      end
+      self
+    end
+
     protected
 
     def schema_enum(definition, &blk)

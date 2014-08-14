@@ -33,7 +33,7 @@ module FixedWidth
     def parse
       raise ParseError, "IO is not set!" unless options.set?(:io)
       reset_io!
-      result, leftover = parse_section(root, nil)
+      result, leftover = parse_section(root.unwrap, nil)
       if verify_input
         leftover ||= advance_io!
         raise UnusedInputError.new %{
