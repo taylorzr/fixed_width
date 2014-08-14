@@ -24,7 +24,7 @@ module FixedWidth
             end
             def configure(hash)
               hash.each do |key,val|
-                iter = Array(val).map(&:to_sym).each
+                iter = (val == :all) ? opts.keys : Array(val).map(&:to_sym)
                 case key
                 when :required
                   iter.each do |op|

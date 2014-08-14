@@ -11,11 +11,10 @@ module FixedWidth
       verify_input: { default: true, validate: [true, false] },
       skip_blank: { default: true, validate: [true, false] }
     )
-    read_write = [ :definition, :io, :by, :verify_input, :skip_blank ]
     options.configure(
       required: [:definition],
-      reader: read_write,
-      writer: read_write
+      reader: :all,
+      writer: :all
     )
 
     def initialize(opts)

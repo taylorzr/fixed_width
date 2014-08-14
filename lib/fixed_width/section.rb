@@ -6,12 +6,13 @@ module FixedWidth
       ordered: { validate: [true, false] },
       repeat: { validate: [true, false] },
       optional: { default: false, validate: [true, false] },
-      singular: { default: true, validate: [true, false] }
+      singular: { default: true, validate: [true, false] },
+      name: { transform: ->(s) {s.try(:to_sym)} }
     )
     options.configure(
       required: [:ordered, :repeat],
-      reader: [:ordered, :repeat, :optional, :singular],
-      writer: [:ordered, :repeat, :optional, :singular]
+      reader: :all,
+      writer: :all
     )
 
     def initialize(opts)
@@ -51,11 +52,14 @@ module FixedWidth
       @in_setup || super
     end
 
-    def method_missing(method, *args)
-      return super unless @in_setup
-      raiser << %{unexpected block while dispatching '#{method}'
-                  in #method_missing}.squish if block_given?
-      add_schema(method, *args)
+    def method_missing(method, *args, &blk)
+      if @in_setup
+        return add_schema(method, *args) unless block_given?
+        if args.empty? || (args.count == 1 && args[0].is_a?(Hash))
+          return section((args[0] || {}).merge(name: method), &blk)
+        end
+      end
+      return super
     end
 
     def valid?(definition)
