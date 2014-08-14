@@ -73,7 +73,8 @@ module FixedWidth
         outputs << more.first
         input = more.last
       end
-      return Hash[repeat: outputs], input
+      key = section.name || :repeat
+      return Hash[key => outputs], input
     end
 
     def parse_any_order(section, input = nil)
