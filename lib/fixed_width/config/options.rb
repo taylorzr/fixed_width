@@ -208,7 +208,9 @@ module FixedWidth
                 undefined_options[key][vt] = conf[vt] if conf.key?(vt)
               end
             when :import
-              options[key] = conf.reject{ |k,v| k == :key } if conf[:prepare]
+              import_to ||= undefined_options if  conf[:undefined]
+              import_to ||= options if conf[:prepare]
+              import_to[key] = conf.reject{ |k,v| k == :key } if import_to
             when :raise
               raise FixedWidth::ConfigError.new "Cannot merge option :#{key}"
             end
@@ -220,6 +222,17 @@ module FixedWidth
       def ==(obj)
         @cmp ||= [ [:<=,[:class]], [:==,[:keys],[:to_hash,true]] ]
         @cmp.all?{ |(op,*on)| on.all?{ |x| obj.send(*x).send(op, send(*x)) } }
+      end
+
+      def without_side_effects
+        before = each_opt(true).to_a
+        yield(self)
+      ensure
+        before.each do |conf|
+          key = conf.delete(:key)
+          hash = conf[:undefined] ? undefined_options : options
+          hash[key] = conf
+        end
       end
 
       protected
