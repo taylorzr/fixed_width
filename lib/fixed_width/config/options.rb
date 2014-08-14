@@ -217,6 +217,11 @@ module FixedWidth
         self
       end
 
+      def ==(obj)
+        @cmp ||= [ [:<=,[:class]], [:==,[:keys],[:to_hash,true]] ]
+        @cmp.all?{ |(op,*on)| on.all?{ |x| obj.send(*x).send(op, send(*x)) } }
+      end
+
       protected
 
       def each_opt(undefined = false)
