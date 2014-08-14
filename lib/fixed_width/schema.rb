@@ -12,7 +12,7 @@ module FixedWidth
       reader: [:name, :parent]
     )
 
-    RESERVED_NAMES = /^spacer/
+    RESERVED_NAMES = /^spacer|repeat/
 
     def initialize(opts)
       initialize_options(opts)

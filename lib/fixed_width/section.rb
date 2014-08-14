@@ -87,6 +87,10 @@ module FixedWidth
       list.map{ |x| x.is_a?(Section) ? x.schema_names : x.first }
     end
 
+    def repeat?
+      opt(:repeat)
+    end
+
     protected
 
     def schema_enum(definition, &blk)

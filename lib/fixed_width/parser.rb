@@ -63,11 +63,18 @@ module FixedWidth
 
     def parse_section(section, initial_input)
       section.validate!(definition)
-      if section.ordered
-        parse_in_order(section, initial_input)
-      else
-        parse_any_order(section, initial_input)
+      worker = method(section.ordered ? :parse_in_order : :parse_any_order)
+      result = worker.call(section, initial_input)
+      return result unless section.repeat?
+      outputs = [result.first]
+      input = result.last
+      loop do
+        more = rollback{ worker.call(section, input) }
+        break unless more
+        outputs << more.first
+        input = more.last
       end
+      return Hash[repeat: outputs], input
     end
 
     def parse_any_order(section, input = nil)
