@@ -33,7 +33,7 @@ module FixedWidth
     def parse
       raise ParseError, "IO is not set!" unless options.set?(:io)
       reset_io!
-      result, leftover = parse_section(root.unwrap, nil)
+      result, leftover = parse_section(root, nil)
       if verify_input
         leftover ||= advance_io!
         raise UnusedInputError.new %{
@@ -41,6 +41,12 @@ module FixedWidth
         }.squish if leftover
       end
       result
+    end
+
+    def output(key, &blk)
+      raise ParseError.new "#output needs a block!" unless block_given?
+      registered_output[key] = blk
+      self
     end
 
     private
@@ -56,18 +62,34 @@ module FixedWidth
       end
     end
 
+    def registered_output
+      @registered_output ||= {}
+    end
+
+    def outputter(section, result)
+      if section.options.set?(:output)
+        if fOut = registered_output[section.output]
+          out, inp = result
+          ret_val = fOut.call(out)
+          return ret_val, inp
+        end
+      end
+      result
+    end
+
     def parse_section(section, initial_input)
       section.validate!(definition)
       worker = method(section.ordered ? :parse_in_order : :parse_any_order)
       result = worker.call(section, initial_input)
+      result = outputter(section, result)
       return result unless section.repeat?
-      outputs = [result.first]
+      outputs = [result.first].compact
       input = result.last
       loop do
         more = rollback{ worker.call(section, input) }
         break unless more
-        outputs << more.first
-        input = more.last
+        out, input = outputter(section, more)
+        outputs << out unless out.nil?
       end
       key = section.name || :repeat
       return Hash[key => outputs], input
@@ -87,7 +109,7 @@ module FixedWidth
             input = nil
           else
             sec_out, input, sect = match
-            output.merge!(sec_out)
+            output.merge!(sec_out) unless sec_out.nil?
             sections_matched[sect] = true
           end
         else
@@ -119,7 +141,7 @@ module FixedWidth
         break input unless part
         if part.is_a?(Section)
           sec_out, input = parse_section(part, input)
-          output.merge!(sec_out)
+          output.merge!(sec_out) unless sec_out.nil?
         else
           input = advance_io! unless input
           schema, opts = part

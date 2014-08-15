@@ -7,7 +7,8 @@ module FixedWidth
       repeat: { validate: [true, false] },
       optional: { default: false, validate: [true, false] },
       singular: { default: true, validate: [true, false] },
-      name: { transform: ->(s) {s.try(:to_sym)} }
+      name: { transform: ->(s) {s.try(:to_sym)} },
+      output: {}
     )
     options.configure(
       required: [:ordered, :repeat],
@@ -139,7 +140,7 @@ module FixedWidth
     def dsl_subsection(mn, more_opts, &blk)
       raiser << "cannot call ##{mn} outside of #setup" unless @in_setup
       raiser << "##{mn} requires a block!" unless block_given?
-      to_init = options.to_hash.merge(more_opts)
+      to_init = options.to_hash.reject{ |k,v| k == :output }.merge(more_opts)
       new_section = self.class.new(to_init)
       new_section.setup(&blk)
       list << new_section
