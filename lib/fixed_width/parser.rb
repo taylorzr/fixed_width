@@ -6,7 +6,7 @@ module FixedWidth
 
     options.define(
       definition: { validate: Config::API },
-      io: { validate: ->(io) {IO === io || StringIO === io} },
+      io: { validate: ->(io) {io.is_a?(IO) || io.is_a?(StringIO)} },
       by: { default: :lines, validate: [:lines, :bytes, :chars] },
       verify_input: { default: true, validate: [true, false] },
       skip_blank: { default: true, validate: [true, false] }
