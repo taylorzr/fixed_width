@@ -1,12 +1,3 @@
-SPECIAL NOTE
-============
-
-An attempt to integrate the various forks of `ryanwood/slither`.
-
-Forked from https://github.com/timonk/fixed_width to provide multibyte support. Uses ActiveSupport::Multibyte::Chars instead of String#unpack. Tested in Ruby 1.8.7 and 1.9.2.
-
-Per https://github.com/timonk/fixed_width/pull/1, this fork will not be reintegrated into the fixed_width because it adds the ActiveSupport dependency.
-
 DESCRIPTION:
 ============
 
@@ -15,12 +6,24 @@ A simple, clean DSL for describing, writing, and parsing fixed-width text files.
 FEATURES:
 =========
 
-* Easy DSL syntax
-* Can parse and format fixed width files
-* Templated sections for reuse
+* Easy to use DSL with trickle-down configuration
+* Reusable, templated schemata
+* Flexible Section Definitions:
+  * Repeated or Singular
+  * Ordered or Unordered
+  * Required or Optional
+* Supports custom data output mechanisms
+* Supports multibyte characters
+
+SPECIAL NOTE:
+=============
+
+An attempt to integrate and improve the various forks of `ryanwood/slither`.
 
 SYNOPSIS:
 =========
+
+##OUTDATED AFTER THIS POINT
 
 ##Creating a definition (Quick 'n Dirty)
 
