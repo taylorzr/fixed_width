@@ -22,12 +22,27 @@ An attempt to integrate and improve the various forks of `ryanwood/slither`.
 
 SYNOPSIS:
 =========
-
-```
-dd = FixedWidth.define do |d|
+### Create a definition to describe the file format
+    dd = FixedWidth::Definition.new
+### Setup a parser
+```ruby
+dd.parser("w00t") do
   #
 end
 ```
+`.parser` takes a name and an options hash
+### Specify the named schemas used in the parser
+```ruby
+dd.schemata(nil_blank: true) do
+  #
+end
+```
+`.schemata` takes an options hash
+### Perform parsing
+### Custom Output
+
+## Configuration Options
+
 ##OUTDATED AFTER THIS POINT
 
 ##Creating a definition (Quick 'n Dirty)
