@@ -7,7 +7,7 @@ FEATURES:
 =========
 
 * Easy to use DSL with trickle-down configuration
-* Reusable, templated schemata
+* Reusable, composable, templated schemata
 * Flexible Section Definitions:
   * Repeated or Singular
   * Ordered or Unordered
