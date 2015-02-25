@@ -23,6 +23,11 @@ An attempt to integrate and improve the various forks of `ryanwood/slither`.
 SYNOPSIS:
 =========
 
+```
+dd = FixedWidth.define do |d|
+  #
+end
+```
 ##OUTDATED AFTER THIS POINT
 
 ##Creating a definition (Quick 'n Dirty)

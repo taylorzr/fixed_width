@@ -1,74 +1,24 @@
 require 'fixed_width/requirements'
 module FixedWidth
 
-  #
-  # [name]   a symbol to reference this file definition later
-  # [option] a hash of default options for all sub-elements and
-  #          a block that defines the sections of the file
-  #
-  # returns: +Definition+ instance for this file description.
-  #
-  def self.define(name, options={}) # yields definition
+  # Create some shortcuts for prettier code
+
+  def self.define(options={})
     definition = Definition.new(options)
-    yield(definition)
-    definitions[name] = definition
+    yield(definition) if block_given?
+    definition
   end
 
-  #
-  # [data]      nested hash describing the contents of the sections
-  # [def_name]  symbol +name+ used in +define+
-  #
-  # returns: string of the transformed +data+ (into fixed-width records).
-  #
-  def self.generate(def_name, data)
-    definition = definitions[def_name]
-    raise ArgumentError.new("Definition name '#{def_name}' was not found.") unless definition
+  # TODO: remove this once definition.generator exists
+  def self.generate(definition, data)
     generator = Generator.new(definition)
     generator.generate(data)
   end
 
-  #
-  # [io]        IO object to write the +generate+d data
-  # [def_name]  symbol +name+ used in +define+
-  # [data]      nested hash describing the contents of the sections
-  #
-  # writes transformed data to +io+ object as fixed-width records.
-  #
-  def self.write(io, def_name, data)
-    io.write(generate(def_name, data))
-  end
-
-  #
-  # [io]          IO object from which to read the fixed-width text records
-  # [def_name]    symbol +name+ used in +define+
-  # [parse_opts]  Options hash to pass to Parser#parse
-  #
-  # returns: parsed text records in a nested hash.
-  #
-  def self.parse(io, def_name, parse_opts = {})
-    definition = definitions[def_name]
-    raise ArgumentError.new("Definition name '#{def_name}' was not found.") unless definition
-    parser = Parser.new(definition, io)
-    parser.parse(parse_opts)
-  end
-
-  #
-  # [filename]    Filename from which to read the fixed-width text records
-  # [def_name]    symbol +name+ used in +define+
-  # [parse_opts]  Options hash to pass to Parser#parse
-  #
-  # returns: parsed text records in a nested hash.
-  #
-  def self.parseFile(filename, def_name, parse_opts = {})
+  def self.for_file(filename)
     File.open(filename, 'r') do |file|
-      parse(file, def_name, parse_opts)
+      yield file
     end
-  end
-
-  private
-
-  def self.definitions
-    @definitions ||= {}
   end
 
 end
