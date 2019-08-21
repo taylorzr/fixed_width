@@ -5,7 +5,6 @@ Gem::Specification.new do |s|
   s.name      = "fixed_width"
   s.version   = FixedWidth::VERSION
   s.platform  = Gem::Platform::RUBY
-  s.date      = Date.today.to_s
 
   s.authors   = ["Ryan Wood", "Timon Karnezos", "David Feldman"]
   s.email     = "dbfeldman@gmail.com"
